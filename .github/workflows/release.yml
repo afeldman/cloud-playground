@@ -10,6 +10,10 @@ on:
         description: 'Version to release (e.g., v1.2.3)'
         required: true
 
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: true
+
 permissions:
   contents: write
   packages: write
@@ -33,15 +37,20 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.6'
+          cache: true
+          cache-dependency-path: cli/cpctl/go.sum
 
-      - name: Verify GoReleaser snapshot build
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          distribution: goreleaser
-          version: '~> v2'
-          args: ${{ env.ACT == 'true' && 'build --snapshot --clean --parallelism 1' || 'build --snapshot --clean' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Verify module download
+        run: go mod download
+        working-directory: cli/cpctl
+
+      - name: Verify Go build
+        run: go build ./...
+        working-directory: cli/cpctl
+
+      - name: Verify Go tests
+        run: go test ./...
+        working-directory: cli/cpctl
 
   goreleaser:
     name: GoReleaser Release
@@ -57,6 +66,8 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: '1.25.6'
+          cache: true
+          cache-dependency-path: cli/cpctl/go.sum
 
       - name: Set up Docker Buildx
         if: ${{ env.ACT != 'true' }}
