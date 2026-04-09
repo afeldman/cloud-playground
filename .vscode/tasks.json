@@ -1,0 +1,168 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    // ── System Lifecycle ────────────────────────────────────────────────────
+    {
+      "label": "🚀 System starten (env up)",
+      "type": "shell",
+      "command": "task env:up",
+      "group": "build",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🛑 System stoppen (env down)",
+      "type": "shell",
+      "command": "task env:down",
+      "group": "build",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "📊 System-Status",
+      "type": "shell",
+      "command": "task env:status",
+      "group": "test",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+
+    // ── Build ────────────────────────────────────────────────────────────────
+    {
+      "label": "🔨 cpctl bauen",
+      "type": "shell",
+      "command": "cd cli/cpctl && go build -o ../../cpctl . && echo '✅ cpctl ready'",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
+      "presentation": {
+        "panel": "shared",
+        "reveal": "silent"
+      },
+      "problemMatcher": "$go"
+    },
+    {
+      "label": "🧪 Tests ausführen",
+      "type": "shell",
+      "command": "cd cli/cpctl && go test ./... -v -count=1 2>&1",
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always",
+        "clear": true
+      },
+      "problemMatcher": "$go"
+    },
+
+    // ── Tunnel ───────────────────────────────────────────────────────────────
+    {
+      "label": "🔌 Tunnel: PostgreSQL starten (:5432)",
+      "type": "shell",
+      "command": "task tunnel:pg:start",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🔌 Tunnel: RDS (Mirror-Cloud) starten (:5433)",
+      "type": "shell",
+      "command": "task tunnel:rds:start",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+
+    // ── Lambda ───────────────────────────────────────────────────────────────
+    {
+      "label": "⚡ Lambda: Logs streamen (Eingabe: Funktionsname)",
+      "type": "shell",
+      "command": "go run ./cli/cpctl lambda logs ${input:lambdaName} --tail --stage localstack",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+
+    // ── OpenTofu (IaC) ───────────────────────────────────────────────────────
+    {
+      "label": "📋 Tofu Plan (LocalStack)",
+      "type": "shell",
+      "command": "task tofu:localstack:plan",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "✅ Tofu Apply (LocalStack)",
+      "type": "shell",
+      "command": "task tofu:localstack:apply",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "❌ Tofu Destroy (LocalStack)",
+      "type": "shell",
+      "command": "task tofu:localstack:destroy",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+
+    // ── AI ───────────────────────────────────────────────────────────────────
+    {
+      "label": "🤖 AI Chat starten",
+      "type": "shell",
+      "command": "task ai:chat",
+      "presentation": {
+        "panel": "dedicated",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "🩺 AI Doctor (LLM-Verbindungstest)",
+      "type": "shell",
+      "command": "task ai:doctor",
+      "presentation": {
+        "panel": "shared",
+        "reveal": "always"
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "lambdaName",
+      "type": "promptString",
+      "description": "Lambda-Funktionsname",
+      "default": "hello-world"
+    }
+  ]
+}

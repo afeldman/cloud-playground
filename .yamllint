@@ -1,0 +1,41 @@
+---
+extends: default
+
+rules:
+  line-length:
+    max: 120
+    level: warning
+
+  indentation:
+    spaces: 2
+    check-multi-line-strings: false
+
+  trailing-spaces: {}
+  trailing-commas: disable
+  new-lines:
+    type: unix
+
+  key-duplicates: {}
+  key-ordering: disable
+
+  document-start:
+    present: false
+
+  comments:
+    min-spaces-from-content: 1
+    require-starting-space: true
+
+  comments-indentation: {}
+  empty-lines:
+    max: 2
+
+  truthy:
+    allowed: ['true', 'false', 'yes', 'no']
+    check-keys: false
+
+  quoted-strings:
+    quote-type: any
+    required: false
+
+  hyphens:
+    max-spaces-after: 1

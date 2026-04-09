@@ -1,0 +1,101 @@
+version: "3"
+
+vars:
+  NAMESPACE: default
+  MANIFESTS_DIR: manifests
+
+tasks:
+  # ==========================================================================
+  # Basic Operations
+  # ==========================================================================
+  get-all:
+    desc: Get all resources
+    cmds:
+      - kubectl get all -n {{.NAMESPACE}}
+  
+  pods:
+    desc: List pods
+    cmds:
+      - kubectl get pods -n {{.NAMESPACE}} -o wide
+  
+  services:
+    desc: List services
+    cmds:
+      - kubectl get services -n {{.NAMESPACE}}
+  
+  deployments:
+    desc: List deployments
+    cmds:
+      - kubectl get deployments -n {{.NAMESPACE}}
+  
+  # ==========================================================================
+  # Apply & Delete
+  # ==========================================================================
+  apply:
+    desc: Apply manifests
+    cmds:
+      - kubectl apply -f {{.MANIFESTS_DIR}}/development/
+      - echo "Development manifests applied"
+  
+  delete:
+    desc: Delete manifests
+    cmds:
+      - kubectl delete -f {{.MANIFESTS_DIR}}/development/ --ignore-not-found
+      - echo "Development manifests deleted"
+  
+  # ==========================================================================
+  # Logs & Debugging
+  # ==========================================================================
+  logs:
+    desc: Show pod logs
+    cmds:
+      - kubectl logs -n {{.NAMESPACE}} -l app=aws-local --tail=50 2>/dev/null || echo "No pods with label app=aws-local"
+  
+  describe:
+    desc: Describe resources
+    cmds:
+      - kubectl describe pods -n {{.NAMESPACE}} -l app=aws-local 2>/dev/null || echo "No pods with label app=aws-local"
+  
+  # ==========================================================================
+  # Port Forwarding
+  # ==========================================================================
+  port-forward:
+    desc: Port forward to services
+    cmds:
+      - echo "Available services for port forwarding:"
+      - kubectl get services -n {{.NAMESPACE}} | grep -v NAME | awk '{print $1}'
+  
+  # ==========================================================================
+  # Testing
+  # ==========================================================================
+  test:
+    desc: Run Kubernetes tests
+    cmds:
+      - echo "=== Cluster Connection Test ==="
+      - kubectl cluster-info
+      - echo ""
+      - echo "=== Node Status ==="
+      - kubectl get nodes
+      - echo ""
+      - echo "=== Pod Status ==="
+      - kubectl get pods --all-namespaces
+  
+  # ==========================================================================
+  # Development Setup
+  # ==========================================================================
+  setup:
+    desc: Setup development namespace and resources
+    cmds:
+      - kubectl create namespace development 2>/dev/null || true
+      - kubectl apply -f {{.MANIFESTS_DIR}}/development/aws-local-setup.yaml
+      - echo "Development setup completed"
+  
+  # ==========================================================================
+  # Cleanup
+  # ==========================================================================
+  clean:
+    desc: Clean development resources
+    cmds:
+      - kubectl delete -f {{.MANIFESTS_DIR}}/development/ --ignore-not-found
+      - kubectl delete namespace development --ignore-not-found
+      - echo "Development resources cleaned"

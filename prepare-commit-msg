@@ -1,0 +1,25 @@
+#!/bin/bash
+MYBASENAME=`basename $0`
+if [ ! -e .git/hooks/${MYBASENAME} ] ; then
+    ln -s ../../git-hooks/${MYBASENAME} .git/hooks/${MYBASENAME}
+    exit 0
+fi
+
+if [ "$3" ] ; then
+    # We are amending; don't append anything to the commit message
+    exit 0
+fi
+
+perl -ne 'if ( /^(")?\s*([dev|doc|bot]+-\d+([ ,])?+)+/gi) { print ; exit 0 } else { exit 1 }' < $1
+if [ $? -eq 0 ] ; then
+    exit 0
+fi
+
+
+# sequence of digits prefixed with "DEV-" in the branch name is interpreted as JIRA ticket id
+# if more than one story ids are part of the branch name, only the last one is used
+STORY_ID=`git symbolic-ref --short -q HEAD | grep -o -i "dev\-[0-9]\+" | tail -1`
+if [ "$STORY_ID" ] ; then
+    STORY_ID=`echo $STORY_ID | tr [dev] [DEV]`
+    echo -e "\n$STORY_ID $(cat $1)" > "$1"
+fi

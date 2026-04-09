@@ -1,0 +1,163 @@
+apiVersion: v2
+name: grafana
+description: Grafana visualization for cloud-playground monitoring
+version: 1.0.0
+appVersion: 10.0.0
+
+dependencies:
+  - name: grafana
+    version: 7.0.0
+    repository: https://grafana.github.io/helm-charts
+
+values:
+  grafana:
+    adminPassword: admin
+    adminUser: admin
+    
+    # Data source provisioning
+    datasources:
+      datasources.yaml:
+        apiVersion: 1
+        datasources:
+          - name: Prometheus
+            type: prometheus
+            url: http://prometheus-server.default.svc:80
+            isDefault: true
+            access: proxy
+    
+    # Dashboard provisioning
+    dashboardProviders:
+      dashboardproviders.yaml:
+        apiVersion: 1
+        providers:
+          - name: 'cpctl-dashboards'
+            orgId: 1
+            folder: 'CPCtl'
+            type: file
+            disableDeletion: false
+            editable: true
+            options:
+              path: /var/lib/grafana/dashboards/cpctl
+    
+    dashboards:
+      cpctl-dashboards:
+        # System Health Dashboard
+        system-health: |
+          {
+            "dashboard": {
+              "title": "System Health",
+              "panels": [
+                {
+                  "title": "CPU Usage",
+                  "targets": [
+                    {
+                      "expr": "rate(node_cpu_seconds_total[5m]) * 100"
+                    }
+                  ]
+                },
+                {
+                  "title": "Memory Usage",
+                  "targets": [
+                    {
+                      "expr": "(1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100"
+                    }
+                  ]
+                },
+                {
+                  "title": "Disk Usage",
+                  "targets": [
+                    {
+                      "expr": "(1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) * 100"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        
+        # Kind Cluster Status Dashboard
+        kind-cluster: |
+          {
+            "dashboard": {
+              "title": "Kind Cluster Status",
+              "panels": [
+                {
+                  "title": "Nodes Status",
+                  "targets": [
+                    {
+                      "expr": "count(kube_node_labels)"
+                    }
+                  ]
+                },
+                {
+                  "title": "Pods Running",
+                  "targets": [
+                    {
+                      "expr": "count(kube_pod_info{pod_phase='Running'})"
+                    }
+                  ]
+                },
+                {
+                  "title": "Services",
+                  "targets": [
+                    {
+                      "expr": "count(kube_service_info)"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        
+        # Application Performance Dashboard
+        app-performance: |
+          {
+            "dashboard": {
+              "title": "App Performance",
+              "panels": [
+                {
+                  "title": "Request Rate",
+                  "targets": [
+                    {
+                      "expr": "rate(http_requests_total[5m])"
+                    }
+                  ]
+                },
+                {
+                  "title": "Error Rate",
+                  "targets": [
+                    {
+                      "expr": "rate(http_requests_total{status=~'5..'}[5m])"
+                    }
+                  ]
+                },
+                {
+                  "title": "P95 Latency",
+                  "targets": [
+                    {
+                      "expr": "histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m]))"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+    
+    # Alert notification channels
+    notifiers:
+      - name: Webhook
+        type: webhook
+        enabled: true
+        settings:
+          url: http://cpctl-webhook:8080/alerts
+          httpMethod: POST
+    
+    persistence:
+      enabled: true
+      size: 5Gi
+      storageClassName: standard
+    
+    service:
+      type: ClusterIP
+      port: 80
+      targetPort: 3000

@@ -1,0 +1,17 @@
+version: "3"
+
+tasks:
+  build:
+    desc: Build local docker image
+    vars:
+      IMAGE: '{{.IMAGE | default "birdy-service:local"}}'
+    cmds:
+      - docker build -t {{.IMAGE}} .
+
+  load-kind:
+    desc: Load docker image into Kind
+    vars:
+      IMAGE: '{{.IMAGE | default "birdy-service:local"}}'
+      CLUSTER_NAME: birdy-playground
+    cmds:
+      - kind load docker-image {{.IMAGE}} --name {{.CLUSTER_NAME}}

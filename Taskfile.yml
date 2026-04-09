@@ -1,0 +1,298 @@
+version: "3"
+
+# ========================================
+# Cloud Playground Task Automation
+# ========================================
+# Organized by functional area for easy discovery
+
+tasks:
+  # ========== DEFAULT ==========
+  default:
+    desc: Show cpctl help
+    cmds:
+      - go run ./cli/cpctl --help
+    silent: true
+
+  # ========== QUICK START ==========
+  setup:
+    desc: One-time setup - install dependencies (kind, tofu, docker)
+    cmds:
+      - |
+        echo "📦 Installing dependencies..."
+        echo ""
+        echo "Automatic with Homebrew:"
+        echo "  brew install kind tofu act"
+        echo ""
+        echo "Or manual:"
+        echo "  1. kind: brew install kind"
+        echo "  2. tofu: brew tap opentofu/homebrew-opentofu && brew install tofu"
+        echo "  3. act: brew install act"
+        echo ""
+        echo "Then: task env:up"
+    silent: false
+
+  # ========== ENVIRONMENT LIFECYCLE ==========
+  env:up:
+    desc: "🚀 Provision infrastructure (stage: LocalStack or Mirror)"
+    cmds:
+      - go run ./cli/cpctl env up
+
+  env:up:mirror:
+    desc: "🚀 Provision Mirror-Cloud (real AWS, ephemeral)"
+    cmds:
+      - go run ./cli/cpctl env up --stage mirror
+
+  env:status:
+    desc: "📊 Show environment status (LocalStack or Mirror)"
+    cmds:
+      - go run ./cli/cpctl env status
+
+  env:down:
+    desc: "🛑 Teardown environment"
+    cmds:
+      - go run ./cli/cpctl env down
+
+  env:down:mirror:
+    desc: "🛑 Teardown Mirror-Cloud"
+    cmds:
+      - go run ./cli/cpctl env down --stage mirror
+
+  # ========== TUNNEL MANAGEMENT ==========
+  tunnel:pg:start:
+    desc: "🔌 Start port-forward for PostgreSQL → :5432"
+    cmds:
+      - go run ./cli/cpctl tunnel start pg
+
+  tunnel:rds:start:
+    desc: "🔌 Start SSM tunnel to RDS → :5433"
+    cmds:
+      - go run ./cli/cpctl tunnel start rds
+
+  tunnel:list:
+    desc: "📋 List all active tunnels"
+    cmds:
+      - go run ./cli/cpctl tunnel list
+
+  tunnel:status:
+    desc: "🔍 Show tunnel health status"
+    cmds:
+      - go run ./cli/cpctl tunnel status
+
+  tunnel:stop:
+    desc: "🛑 Stop specific tunnel by name"
+    cmds:
+      - go run ./cli/cpctl tunnel stop {{.CLI_ARGS}}
+
+  # ========== TOFU / INFRASTRUCTURE ==========
+  tofu:localstack:plan:
+    desc: "📋 Preview LocalStack infrastructure changes"
+    cmds:
+      - tofu -chdir=tofu/localstack plan
+
+  tofu:localstack:apply:
+    desc: "✅ Apply LocalStack infrastructure"
+    cmds:
+      - tofu -chdir=tofu/localstack apply -auto-approve
+
+  tofu:localstack:destroy:
+    desc: "❌ Destroy LocalStack infrastructure"
+    cmds:
+      - tofu -chdir=tofu/localstack destroy -auto-approve
+
+  tofu:mirror:plan:
+    desc: "📋 Preview Mirror-Cloud infrastructure"
+    cmds:
+      - tofu -chdir=tofu/mirror plan
+
+  tofu:mirror:apply:
+    desc: "✅ Apply Mirror-Cloud infrastructure"
+    cmds:
+      - tofu -chdir=tofu/mirror apply -auto-approve
+
+  tofu:mirror:destroy:
+    desc: "❌ Destroy Mirror-Cloud infrastructure"
+    cmds:
+      - tofu -chdir=tofu/mirror destroy -auto-approve
+
+  # ========== BUILD & RELEASE ==========
+  build:
+    desc: "🔨 Build cpctl for all platforms (snapshot)"
+    cmds:
+      - goreleaser build --snapshot --clean
+
+  build:local:
+    desc: "⚡ Build cpctl for current platform only"
+    cmds:
+      - goreleaser build --snapshot --clean --single-target
+
+  build:docker:
+    desc: "🐳 Build cpctl Docker image"
+    cmds:
+      - goreleaser release --snapshot --rm-dist
+
+  # ========== CI/CD - GITHUB ACTIONS LOCAL TESTING ==========
+  ci:check:
+    desc: "✅ Run all local CI checks (lint, test, build)"
+    cmds:
+      - echo "🔍 Running local checks..."
+      - go test ./...
+      - go fmt ./...
+      - go vet ./...
+      - golangci-lint run ./...
+
+  ci:lint:
+    desc: "✏️  Lint code (golangci-lint)"
+    cmds:
+      - golangci-lint run ./...
+
+  ci:test:
+    desc: "🧪 Run unit tests"
+    cmds:
+      - go test -v ./...
+
+  ci:coverage:
+    desc: "📊 Generate test coverage report"
+    cmds:
+      - go test -cover ./... | grep coverage
+
+  act:list:
+    desc: "📋 List workflows available for local testing"
+    cmds:
+      - act --list
+
+  act:workflows:info:
+    desc: "ℹ️  Show detailed workflow info"
+    cmds:
+      - bash scripts/act.sh list-detailed
+
+  act:ci:
+    desc: "🏃 Test CI workflow locally (pull_request event)"
+    cmds:
+      - bash scripts/act.sh test-ci
+
+  act:release:
+    desc: "🚀 Test release workflow locally (push event)"
+    cmds:
+      - bash scripts/act.sh test-release
+
+  act:all:
+    desc: "🧪 Test all workflows locally"
+    cmds:
+      - bash scripts/act.sh test-all
+
+  act:secrets:setup:
+    desc: "🔐 Create .actrc secrets template (fill in values manually)"
+    cmds:
+      - bash scripts/act.sh create-secrets
+
+  # ========== LAMBDA MANAGEMENT ==========
+  lambda:deploy:
+    desc: "📦 Deploy Lambda functions to local/mirror"
+    cmds:
+      - go run ./cli/cpctl lambda deploy --stage {{.STAGE}}
+    vars:
+      STAGE: "localstack"
+
+  lambda:logs:
+    desc: "📜 Stream Lambda logs"
+    cmds:
+      - go run ./cli/cpctl lambda logs --stage {{.STAGE}} --follow
+    vars:
+      STAGE: "localstack"
+
+  lambda:invoke:
+    desc: "⚡ Invoke Lambda function (test/debug)"
+    cmds:
+      - go run ./cli/cpctl lambda invoke --stage {{.STAGE}} --name {{.CLI_ARGS}}
+    vars:
+      STAGE: "localstack"
+
+  # ========== AWS BATCH MANAGEMENT ==========
+  batch:submit:
+    desc: "🚀 Submit job to Batch queue"
+    cmds:
+      - go run ./cli/cpctl batch submit --stage {{.STAGE}} {{.CLI_ARGS}}
+    vars:
+      STAGE: "localstack"
+
+  batch:watch:
+    desc: "⏱️  Watch Batch job execution progress"
+    cmds:
+      - go run ./cli/cpctl batch watch --stage {{.STAGE}} --job-id {{.CLI_ARGS}}
+    vars:
+      STAGE: "localstack"
+
+  batch:logs:
+    desc: "📜 Get Batch job logs"
+    cmds:
+      - go run ./cli/cpctl batch logs --stage {{.STAGE}} --job-id {{.CLI_ARGS}}
+    vars:
+      STAGE: "localstack"
+
+  # ========== AI ASSISTANT ==========
+  ai:chat:
+    desc: "🤖 Interactive chat with local LLM"
+    cmds:
+      - go run ./cli/cpctl ai chat
+
+  ai:debug:
+    desc: "🔍 Debug suggestion from AI"
+    cmds:
+      - go run ./cli/cpctl ai debug < /dev/stdin
+
+  ai:doctor:
+    desc: "🩺 Check AI backend and model availability"
+    cmds:
+      - go run ./cli/cpctl ai doctor
+
+  # ========== SYSTEM STATUS & DIAGNOSTICS ==========
+  status:
+    desc: "📊 Full system status"
+    cmds:
+      - go run ./cli/cpctl status
+
+  logs:
+    desc: "📜 Dump logs (Kind, LocalStack, cpctl)"
+    cmds:
+      - go run ./cli/cpctl debug logs
+
+  logs:kind:
+    desc: "📜 Kind cluster logs only"
+    cmds:
+      - kubectl logs --all-namespaces --timestamps
+
+  logs:localstack:
+    desc: "📜 LocalStack container logs"
+    cmds:
+      - docker logs birdy-localstack 2>&1 | tail -50
+
+  clean:
+    desc: "🧹 Clean data directories (keep config)"
+    cmds:
+      - rm -rf data/tunnels/*
+      - rm -rf data/environments/*
+      - rm -rf data/*.pid data/*.env
+      - echo "✅ Cleaned"
+
+  # ========== DEVELOPMENT WORKFLOW ==========
+  dev:watch:
+    desc: "👀 Watch files and rebuild on change"
+    cmds:
+      - task: build:local
+      - goreleaser build --snapshot --clean --single-target --watch
+
+  dev:test:watch:
+    desc: "👀 Watch tests and re-run on change"
+    cmds:
+      - fd --extension go | entr -c go test ./...
+
+  # ========== DOCUMENTATION & HELP ==========
+  docs:
+    desc: "📖 Show project documentation"
+    cmds:
+      - cat AGENT.md | less
+
+  help:setup:
+    desc: "❓ Getting started guide"
+    cmds:
+      - cat LOCAL_DEVELOPMENT.md

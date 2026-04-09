@@ -1,0 +1,11 @@
+apiVersion: 1
+
+providers:
+  - name: 'CPCtl Dashboards'
+    orgId: 1
+    folder: 'CPCtl'
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards

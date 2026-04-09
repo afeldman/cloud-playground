@@ -1,0 +1,120 @@
+playground:
+  name: birdy-playground
+  data_dir: ./data
+
+logging:
+  enabled: true
+  file: ./data/logs/cpctl.log
+  max_size_mb: 10
+  max_backups: 5
+  max_age_days: 7
+  compress: true
+
+aws:
+  region: eu-central-1
+
+localstack:
+  enabled: true
+  endpoint: http://localhost:4566
+  port: 4566
+
+kind:
+  enabled: true
+  cluster_name: birdy-local
+  kubeconfig: ~/.kube/config
+
+# -------------------------------------------------------------------
+# Tunnel definitions — cpctl tunnel start <name>
+# Types: kubernetes (kubectl port-forward) | aws-ssm (Session Manager)
+# -------------------------------------------------------------------
+tunnels:
+  pg:
+    type: kubernetes
+    namespace: services
+    service: postgres
+    local_port: 5432
+    remote_port: 5432
+    auto_start: false
+  rds:
+    type: aws-ssm
+    remote_host: ""          # RDS endpoint — override via env or cpctl mirror aws
+    remote_port: 5432
+    local_port: 5433
+    auto_start: false
+  # snowflake:              # placeholder for future use
+  #   type: aws-ssm
+  #   remote_host: ""
+  #   remote_port: 443
+  #   local_port: 14443
+
+# -------------------------------------------------------------------
+# Mirror-Cloud — ephemeral real AWS environment
+# cpctl env up --stage mirror [--ttl 4h]
+# -------------------------------------------------------------------
+mirror:
+  enabled: false
+  aws_profile: mirror-account   # AWS CLI profile for the mirror account
+  aws_region: eu-central-1
+  default_ttl: 4h               # auto-teardown after this duration (max 24h)
+  resources:
+    compute: true
+    database: true
+    batch: true
+    lambda: true
+
+# -------------------------------------------------------------------
+# GitHub Actions local testing via act
+# task act:ci | task act:release
+# -------------------------------------------------------------------
+github_actions:
+  enabled: true
+  secrets_file: .act/secrets.env
+  events_dir: .act/events
+
+# -------------------------------------------------------------------
+# Local AI assistant — cpctl ai chat / debug / suggest / doctor
+# Supports: ollama | openai-compatible (LM Studio) | anthropic
+# -------------------------------------------------------------------
+ai:
+  enabled: true
+  endpoint: http://localhost:11434/v1   # Ollama default; LM Studio: http://localhost:1234/v1
+  model: llama3.2
+  system_prompt: ""                     # optional custom system prompt
+
+  # Multi-provider fallback (first reachable wins):
+  # providers:
+  #   - type: ollama
+  #     url: http://localhost:11434/v1
+  #     model: llama3.2
+  #   - type: openai-compatible        # LM Studio
+  #     url: http://localhost:1234/v1
+  #     model: mistral-7b-instruct
+  #   - type: anthropic
+  #     api_key: ${ANTHROPIC_API_KEY}
+  #     model: claude-haiku-4-5-20251001
+
+# -------------------------------------------------------------------
+# Development automation
+# -------------------------------------------------------------------
+development:
+  auto_sync_ssm: true
+  auto_rebuild_cli: false
+  auto_start_tunnels: false
+  stage: localstack   # localstack | mirror
+
+observability:
+  enabled: false
+  prometheus:
+    enabled: false
+    endpoint: http://localhost:9090
+    retention: 30m
+    scrape_interval: 30s
+  grafana:
+    enabled: false
+    endpoint: http://localhost:3000
+    admin_user: admin
+    admin_password: admin
+  alertmanager:
+    enabled: false
+    endpoint: http://localhost:9093
+  compose_profile: core  # core | observability | all

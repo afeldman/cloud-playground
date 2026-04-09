@@ -1,0 +1,132 @@
+version: "3"
+
+tasks:
+  # ==========================================================================
+  # Health Checks
+  # ==========================================================================
+  wait-healthy:
+    desc: Wait for all components to be healthy
+    cmds:
+      - echo "Waiting for LocalStack..."
+      - for i in {1..30}; do
+          curl -s http://localhost:4566/_localstack/health > /dev/null 2>&1 && break
+          echo -n "."
+          sleep 2
+        done
+      - echo ""
+      - echo "Waiting for Kubernetes..."
+      - for i in {1..30}; do
+          kubectl get nodes > /dev/null 2>&1 && break
+          echo -n "."
+          sleep 2
+        done
+      - echo ""
+      - echo "All components are healthy!"
+  
+  check:
+    desc: Check health of all components
+    cmds:
+      - echo "=== LocalStack Health ==="
+      - curl -s http://localhost:4566/_localstack/health | jq . 2>/dev/null || echo "LocalStack not running"
+      - echo ""
+      - echo "=== Kubernetes Health ==="
+      - kubectl cluster-info 2>/dev/null || echo "Kubernetes not running"
+      - echo ""
+      - echo "=== Docker Health ==="
+      - docker info > /dev/null 2>&1 && echo "Docker running" || echo "Docker not running"
+  
+  # ==========================================================================
+  # Status Reports
+  # ==========================================================================
+  status:
+    desc: Show complete environment status
+    cmds:
+      - |
+        echo "========================================="
+        echo "    LOCAL DEVELOPMENT ENVIRONMENT STATUS"
+        echo "========================================="
+        echo ""
+        
+        echo "=== DOCKER ==="
+        if docker info > /dev/null 2>&1; then
+          echo "✓ Running"
+          echo "  Containers: $(docker ps -q | wc -l | tr -d ' ') running"
+        else
+          echo "✗ Not running"
+        fi
+        echo ""
+        
+        echo "=== LOCALSTACK ==="
+        if curl -s http://localhost:4566/_localstack/health > /dev/null 2>&1; then
+          echo "✓ Running on http://localhost:4566"
+          echo "  UI: http://localhost:8080"
+        else
+          echo "✗ Not running"
+        fi
+        echo ""
+        
+        echo "=== KUBERNETES ==="
+        if kind get clusters | grep -q "birdy-playground"; then
+          echo "✓ Cluster 'birdy-playground' running"
+          echo "  API: https://localhost:6443"
+          echo "  Nodes: $(kubectl get nodes --no-headers 2>/dev/null | wc -l | tr -d ' ')"
+        else
+          echo "✗ Cluster not running"
+        fi
+        echo ""
+        
+        echo "=== AWS PROFILES ==="
+        if [ -f ~/.aws/config ]; then
+          echo "✓ Configured"
+          grep "\[profile" ~/.aws/config | sed 's/\[profile //' | sed 's/\]//' | while read profile; do
+            echo "  - $profile"
+          done
+        else
+          echo "✗ Not configured"
+        fi
+        echo ""
+        
+        echo "=== PORTS ==="
+        echo "  80   - HTTP"
+        echo "  443  - HTTPS"
+        echo "  4566 - LocalStack API"
+        echo "  8080 - LocalStack UI"
+        echo "  3000 - Grafana"
+        echo "  9090 - Prometheus"
+        echo "  6443 - Kubernetes API"
+  
+  # ==========================================================================
+  # Diagnostics
+  # ==========================================================================
+  diagnostics:
+    desc: Run diagnostics
+    cmds:
+      - echo "=== System Diagnostics ==="
+      - echo "Date: $(date)"
+      - echo "Uptime: $(uptime)"
+      - echo ""
+      - echo "=== Docker Diagnostics ==="
+      - docker version 2>/dev/null | head -3
+      - echo ""
+      - echo "=== Kubernetes Diagnostics ==="
+      - kubectl version --short 2>/dev/null || echo "Kubernetes not available"
+      - echo ""
+      - echo "=== Network Diagnostics ==="
+      - echo "LocalStack: $(curl -s -o /dev/null -w "%{http_code}" http://localhost:4566/_localstack/health 2>/dev/null || echo "DOWN")"
+      - echo "Kubernetes API: $(curl -s -k -o /dev/null -w "%{http_code}" https://localhost:6443/healthz 2>/dev/null || echo "DOWN")"
+  
+  # ==========================================================================
+  # Resource Usage
+  # ==========================================================================
+  resources:
+    desc: Show resource usage
+    cmds:
+      - echo "=== System Resources ==="
+      - echo "CPU: $(top -l 1 | grep "CPU usage" | cut -d':' -f2)"
+      - echo "Memory: $(top -l 1 | grep "PhysMem" | cut -d':' -f2)"
+      - echo ""
+      - echo "=== Docker Resources ==="
+      - docker stats --no-stream 2>/dev/null || echo "No containers running"
+      - echo ""
+      - echo "=== Kubernetes Resources ==="
+      - kubectl top nodes 2>/dev/null || echo "Metrics not available"

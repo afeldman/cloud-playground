@@ -1,0 +1,149 @@
+version: '3.9'
+
+services:
+  # LocalStack - AWS emulation
+  localstack:
+    image: localstack/localstack:3.0
+    container_name: cpctl-localstack
+    ports:
+      - "4566:4566"            # LocalStack Edge Proxy
+      - "4571:4571"            # Old Port (legacy)
+    environment:
+      - DEBUG=${DEBUG:-}
+      - SERVICES=s3,sqs,dynamodb,ssm,secretsmanager,iam,lambda,sns,cloudwatch,batch
+      - DOCKER_HOST=unix:///var/run/docker.sock
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=eu-central-1
+      - LAMBDA_EXECUTOR=docker
+      - LOCALSTACK_HOSTNAME=localstack
+    volumes:
+      - "${LOCALSTACK_VOLUME_DIR:-./.localstack}:/tmp/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - cpctl-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # PostgreSQL - In-cluster database
+  postgres:
+    image: postgres:15-alpine
+    container_name: cpctl-postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: cpctl_local
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cpctl-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Prometheus - Metrics collection (deployed to Kind via Helm in Phase 10)
+  # Kept here for local development without Kind
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cpctl-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./manifests/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30m'
+    networks:
+      - cpctl-network
+    depends_on:
+      - localstack
+    profiles:
+      - observability
+
+  # Grafana - Visualization (deployed to Kind via Helm in Phase 10)
+  # Kept here for local development without Kind
+  # NOTE: Port 3000 is internal only; access via nginx at localhost:8080/grafana/
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cpctl-grafana
+    ports:
+      - "3000:3000"  # Internal only - nginx reverse proxy handles external access
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_INSTALL_PLUGINS=grafana-clock-panel
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/system.json
+      # Configure Grafana behind reverse proxy
+      - GF_SERVER_ROOT_URL=http://localhost:8080/grafana/
+      - GF_SERVER_SERVE_FROM_SUB_PATH=true
+    volumes:
+      - ./manifests/grafana/provisioning:/etc/grafana/provisioning
+      - ./manifests/grafana/dashboards:/var/lib/grafana/dashboards
+      - grafana_data:/var/lib/grafana
+    networks:
+      - cpctl-network
+    depends_on:
+      - prometheus
+    profiles:
+      - observability
+
+  # Nginx Reverse Proxy - Consolidate observability endpoints
+  # Exposes Grafana, Prometheus, AlertManager under single port
+  nginx:
+    image: nginx:alpine
+    container_name: cpctl-nginx
+    ports:
+      - "8080:80"  # Access at http://localhost:8080/grafana/ etc.
+    volumes:
+      - ./manifests/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - cpctl-network
+    depends_on:
+      - grafana
+      - prometheus
+      - alertmanager
+    profiles:
+      - observability
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # AlertManager - Alert routing (Phase 10)
+  # NOTE: Port 9093 is internal only; access via nginx at localhost:8080/alertmanager/
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: cpctl-alertmanager
+    ports:
+      - "9093:9093"  # Internal only - nginx reverse proxy handles external access
+    volumes:
+      - ./manifests/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    networks:
+      - cpctl-network
+    profiles:
+      - observability
+
+networks:
+  cpctl-network:
+    driver: bridge
+    name: cpctl-network
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+  alertmanager_data:

@@ -1,0 +1,106 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: s3-uploader-example
+  labels:
+    app: s3-uploader
+    example: "true"
+spec:
+  template:
+    metadata:
+      labels:
+        app: s3-uploader
+        example: "true"
+    spec:
+      serviceAccountName: aws-local-serviceaccount
+      containers:
+      - name: s3-uploader
+        image: python:3.9-slim
+        command: ["/bin/sh", "-c"]
+        args:
+          - |
+            echo "Installing dependencies..."
+            pip install boto3
+            echo "Running S3 uploader example..."
+            python -c "
+import boto3
+import json
+from datetime import datetime
+
+# Configure for LocalStack
+s3 = boto3.client(
+    's3',
+    endpoint_url='http://host.docker.internal:4566',
+    aws_access_key_id='test',
+    aws_secret_access_key='test',
+    region_name='eu-central-1'
+)
+
+# Test bucket operations
+try:
+    # List buckets
+    print('Listing S3 buckets:')
+    response = s3.list_buckets()
+    for bucket in response['Buckets']:
+        print(f'  - {bucket[\"Name\"]}')
+    
+    # Create test data
+    test_data = {
+        'timestamp': datetime.now().isoformat(),
+        'message': 'Hello from Kubernetes job!',
+        'environment': 'localstack-k8s'
+    }
+    
+    # Upload to S3
+    bucket_name = 'kubernetes-test-bucket'
+    try:
+        s3.create_bucket(
+            Bucket=bucket_name,
+            CreateBucketConfiguration={'LocationConstraint': 'eu-central-1'}
+        )
+        print(f'Bucket {bucket_name} created')
+    except:
+        print(f'Bucket {bucket_name} already exists')
+    
+    s3.put_object(
+        Bucket=bucket_name,
+        Key='test-data.json',
+        Body=json.dumps(test_data, indent=2)
+    )
+    print(f'Test data uploaded to {bucket_name}/test-data.json')
+    
+    # Verify upload
+    response = s3.get_object(Bucket=bucket_name, Key='test-data.json')
+    downloaded_data = json.loads(response['Body'].read().decode('utf-8'))
+    print(f'Downloaded data: {downloaded_data}')
+    
+    print('✓ S3 operations successful!')
+    
+except Exception as e:
+    print(f'✗ Error: {e}')
+    exit(1)
+            "
+        env:
+        - name: AWS_ENDPOINT_URL
+          value: "http://host.docker.internal:4566"
+        - name: AWS_ACCESS_KEY_ID
+          value: "test"
+        - name: AWS_SECRET_ACCESS_KEY
+          value: "test"
+        - name: AWS_DEFAULT_REGION
+          value: "eu-central-1"
+      restartPolicy: Never
+  backoffLimit: 0
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: s3-uploader-script
+  labels:
+    example: "true"
+data:
+  s3_uploader.py: |
+    # S3 Uploader script for Kubernetes
+    # This would be mounted as a volume in a real deployment
+    print("S3 Uploader script placeholder")
+    print("In a real deployment, this would be your application code")

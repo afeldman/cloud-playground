@@ -1,0 +1,101 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // ── cpctl direkt debuggen ────────────────────────────────────────────────
+    {
+      "name": "cpctl: env up",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cli/cpctl",
+      "args": ["env", "up"],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "AWS_ACCESS_KEY_ID": "test",
+        "AWS_SECRET_ACCESS_KEY": "test",
+        "AWS_DEFAULT_REGION": "eu-central-1"
+      }
+    },
+    {
+      "name": "cpctl: env down",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cli/cpctl",
+      "args": ["env", "down"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "cpctl: env status",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cli/cpctl",
+      "args": ["env", "status"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "cpctl: tunnel list",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cli/cpctl",
+      "args": ["tunnel", "list"],
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "cpctl: lambda invoke (hello-world)",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cli/cpctl",
+      "args": [
+        "lambda", "invoke", "hello-world",
+        "--payload", "{\"key\":\"value\"}",
+        "--stage", "localstack"
+      ],
+      "cwd": "${workspaceFolder}",
+      "env": {
+        "AWS_ACCESS_KEY_ID": "test",
+        "AWS_SECRET_ACCESS_KEY": "test",
+        "AWS_DEFAULT_REGION": "eu-central-1",
+        "AWS_ENDPOINT_URL": "http://localhost:4566"
+      }
+    },
+    {
+      "name": "cpctl: ai doctor",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cli/cpctl",
+      "args": ["ai", "doctor"],
+      "cwd": "${workspaceFolder}"
+    },
+
+    // ── Unit Tests debuggen ──────────────────────────────────────────────────
+    {
+      "name": "Tests: internes LLM-Package",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${workspaceFolder}/cli/cpctl/internal/llm",
+      "args": ["-v", "-count=1"]
+    },
+    {
+      "name": "Tests: aktuelles Paket",
+      "type": "go",
+      "request": "launch",
+      "mode": "test",
+      "program": "${fileDirname}",
+      "args": ["-v", "-run", "${input:testName}"]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "testName",
+      "type": "promptString",
+      "description": "Test-Name (Regex)",
+      "default": "."
+    }
+  ]
+}

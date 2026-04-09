@@ -1,0 +1,57 @@
+version: "3"
+
+vars:
+  LOCALSTACK_URL: http://localhost:4566
+  LOCALSTACK_UI_URL: http://localhost:8080
+  COMPOSE_FILE: localstack/docker-compose.yml
+
+tasks:
+  up:
+    desc: Start LocalStack with UI
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} up -d
+      - echo "LocalStack started"
+      - echo "API: {{.LOCALSTACK_URL}}"
+      - echo "UI: {{.LOCALSTACK_UI_URL}}"
+
+  down:
+    desc: Stop LocalStack
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} down
+      - echo "LocalStack stopped"
+
+  clean:
+    desc: Clean LocalStack data
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} down -v
+      - rm -rf localstack/data/*
+      - echo "LocalStack data cleaned"
+
+  restart:
+    desc: Restart LocalStack
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} down
+      - docker compose -f {{.COMPOSE_FILE}} up -d
+      - echo "LocalStack restarted"
+
+  status:
+    desc: LocalStack health status
+    cmds:
+      - echo "=== LocalStack Status ==="
+      - curl -s {{.LOCALSTACK_URL}}/_localstack/health | jq . || echo "LocalStack not running"
+
+  logs:
+    desc: Show LocalStack logs
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} logs --tail=50
+
+  follow:
+    desc: Follow LocalStack logs
+    cmds:
+      - docker compose -f {{.COMPOSE_FILE}} logs -f
+
+  test:
+    desc: Test LocalStack connectivity
+    cmds:
+      - echo "Testing LocalStack connection..."
+      - curl -f {{.LOCALSTACK_URL}}/_localstack/health && echo "✓ LocalStack is healthy" || echo "✗ LocalStack not reachable"

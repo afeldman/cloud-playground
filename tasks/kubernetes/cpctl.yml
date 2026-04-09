@@ -1,0 +1,38 @@
+version: "3"
+
+tasks:
+  up:
+    desc: Start cloud-playground (kind + localstack)
+    cmds:
+      - go run ./cli/cpctl up
+
+  down:
+    desc: Stop cloud-playground
+    cmds:
+      - go run ./cli/cpctl down
+
+  apply:
+    desc: Apply Kubernetes manifests
+    deps:
+      - up
+    cmds:
+      - go run ./cli/cpctl apply
+
+  sync:
+    desc: Sync local config data into Kubernetes (ConfigMaps / Secrets)
+    deps:
+      - up
+    cmds:
+      - go run ./cli/cpctl apply
+      - go run ./cli/cpctl sync
+
+  mirror:
+    desc: Mirror configuration from AWS into local filesystem
+    vars:
+      AWS_PROFILE: '{{ default "example-profile" .AWS_SUBSCRIPTION }}'
+    cmds:
+      - |
+          aws sts get-caller-identity \
+            --profile {{ .AWS_PROFILE }} >/dev/null \
+            || aws sso login --profile {{ .AWS_PROFILE }}
+      - go run ./cli/cpctl mirror aws {{ .AWS_PROFILE }}

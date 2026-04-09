@@ -1,0 +1,50 @@
+version: "3"
+
+vars:
+  DOCKER_REGISTRY: localhost:5000
+  IMAGE_NAME: myapp
+  IMAGE_TAG: latest
+
+tasks:
+  build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t {{.IMAGE_NAME}}:{{.IMAGE_TAG}} .
+      - echo "Image built: {{.IMAGE_NAME}}:{{.IMAGE_TAG}}"
+
+  run:
+    desc: Run Docker container
+    cmds:
+      - docker run --rm -p 8080:8080 {{.IMAGE_NAME}}:{{.IMAGE_TAG}}
+
+  push:
+    desc: Push to local registry
+    cmds:
+      - docker tag {{.IMAGE_NAME}}:{{.IMAGE_TAG}} {{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}:{{.IMAGE_TAG}}
+      - docker push {{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}:{{.IMAGE_TAG}}
+      - echo "Pushed to {{.DOCKER_REGISTRY}}/{{.IMAGE_NAME}}:{{.IMAGE_TAG}}"
+
+  kind-load:
+    desc: Load image to Kind cluster
+    cmds:
+      - kind load docker-image {{.IMAGE_NAME}}:{{.IMAGE_TAG}} --name birdy-playground
+      - echo "Image loaded to Kind cluster"
+
+  registry-up:
+    desc: Start local Docker registry
+    cmds:
+      - docker run -d -p 5000:5000 --name registry registry:2
+      - echo "Local registry started on port 5000"
+
+  registry-down:
+    desc: Stop local Docker registry
+    cmds:
+      - docker stop registry 2>/dev/null || true
+      - docker rm registry 2>/dev/null || true
+      - echo "Local registry stopped"
+
+  clean:
+    desc: Clean Docker resources
+    cmds:
+      - docker system prune -f
+      - echo "Docker resources cleaned"

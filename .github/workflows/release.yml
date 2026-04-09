@@ -1,0 +1,123 @@
+name: Release with GoReleaser
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., v1.2.3)'
+        required: true
+
+permissions:
+  contents: write
+  packages: write
+  id-token: write  # Required for OIDC token for container registry
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  verify:
+    name: Verify Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.6'
+
+      - name: Verify GoReleaser snapshot build
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: ${{ env.ACT == 'true' && 'build --snapshot --clean --parallelism 1' || 'build --snapshot --clean' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  goreleaser:
+    name: GoReleaser Release
+    runs-on: ubuntu-latest
+    needs: [verify]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.6'
+
+      - name: Set up Docker Buildx
+        if: ${{ env.ACT != 'true' }}
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        if: ${{ env.ACT != 'true' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run GoReleaser
+        uses: goreleaser/goreleaser-action@v5
+        with:
+          distribution: goreleaser
+          version: '~> v2'
+          args: ${{ env.ACT == 'true' && 'build --snapshot --clean --parallelism 1' || 'release --clean' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional: Add if you want to sign releases
+          # GPG_FINGERPRINT: ${{ secrets.GPG_FINGERPRINT }}
+          # HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+
+  update-fish-food:
+    name: Update Fish Food
+    needs: [goreleaser]
+    if: ${{ github.actor != 'nektos/act' }}
+    uses: afeldman/fish-food/.github/workflows/update-food.yml@main
+    with:
+      name: cpctl
+      version: ${{ github.ref_name }}
+      description: "Local cloud playground CLI (Kind + LocalStack + Mirror-Cloud)"
+      github_repo: afeldman/cloud-playground
+    secrets:
+      fish_food_token: ${{ secrets.FISH_FOOD_TOKEN }}
+
+  notify:
+    name: Notify Release
+    runs-on: ubuntu-latest
+    needs: [verify, goreleaser]
+    if: always()
+    steps:
+      - name: Get version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ github.event.inputs.version }}"
+          else
+            VERSION=${{ github.ref_name }}
+          fi
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Print release info
+        run: |
+          if [[ "${{ needs.goreleaser.result }}" == "success" ]]; then
+            echo "✅ Release ${{ steps.version.outputs.version }} published successfully with GoReleaser!"
+            echo "📦 Binaries available on GitHub Releases"
+            echo "🐳 Docker image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+          else
+            echo "❌ Release failed"
+            exit 1
+          fi

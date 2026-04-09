@@ -1,0 +1,33 @@
+{
+  "recommendations": [
+    // Go Development
+    "golang.go",
+
+    // Docker + Container
+    "ms-azuretools.vscode-docker",
+
+    // Kubernetes (Kind-Cluster)
+    "ms-kubernetes-tools.vscode-kubernetes-tools",
+
+    // Taskfile-Runner
+    "task.vscode-task",
+
+    // YAML (docker-compose, Taskfile, .cpctl.yaml)
+    "redhat.vscode-yaml",
+
+    // REST-Client (Lambda invoke, LocalStack API)
+    "humao.rest-client",
+
+    // Umgebungsvariablen (.env)
+    "mikestead.dotenv",
+
+    // GitLens
+    "eamodio.gitlens",
+
+    // Better TOML (OpenTofu/Terraform)
+    "tamasfe.even-better-toml",
+
+    // Copilot (optional)
+    "github.copilot"
+  ]
+}

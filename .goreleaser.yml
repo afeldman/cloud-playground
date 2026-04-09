@@ -1,0 +1,118 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: cpctl
+
+before:
+  hooks:
+    - sh -c 'cd cli/cpctl && go mod download'
+    - sh -c 'cd cli/cpctl && go mod tidy'
+    # - ./tasks/build-docs.sh  # Optional: uncomment if script exists
+
+builds:
+  - id: cpctl
+    dir: cli/cpctl
+    binary: cpctl
+    main: ./main.go
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    goarm: []
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.Commit={{.Commit}}
+      - -X main.Date={{.Date}}
+
+archives:
+  - id: cpctl
+    formats:
+      - tar.gz
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    name_template: "cpctl_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
+    strip_binary_directory: true
+    files:
+      - README.md
+      - docs/LOCAL_DEVELOPMENT.md
+      - QUICKSTART.md
+
+dockers_v2:
+  - id: cpctl
+    ids:
+      - cpctl
+    dockerfile: Dockerfile.goreleaser
+    images:
+      - "ghcr.io/afeldman/cpctl"
+    tags:
+      - "{{ .Version }}"
+      - "{{ if not .IsSnapshot }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      "org.opencontainers.image.title": "{{ .ProjectName }}"
+      "org.opencontainers.image.description": "Cloud Playground CLI for AWS & Kubernetes"
+      "org.opencontainers.image.url": "https://github.com/afeldman/cloud-playground"
+      "org.opencontainers.image.source": "https://github.com/afeldman/cloud-playground"
+      "org.opencontainers.image.version": "{{ .Version }}"
+      "org.opencontainers.image.revision": "{{ .FullCommit }}"
+
+checksum:
+  name_template: "checksums.txt"
+  algorithm: sha256
+
+changelog:
+  sort: asc
+  use: git
+  groups:
+    - title: "Features"
+      regexp: "^.*feat([\\w-]*)!?:.*$"
+      order: 0
+    - title: "Bug fixes"
+      regexp: "^.*fix([\\w-]*)!?:.*$"
+      order: 1
+    - title: "Performance"
+      regexp: "^.*perf([\\w-]*)!?:.*$"
+      order: 2
+    - title: "Others"
+      order: 999
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^ci:"
+      - "^build:"
+
+homebrew_casks:
+  - name: cpctl
+    repository:
+      owner: afeldman
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: "https://github.com/afeldman/cloud-playground"
+    description: "Cloud Playground: Local dev platform for AWS + Kubernetes"
+    license: "Apache-2.0"
+    binaries:
+      - cpctl
+    skip_upload: auto
+
+release:
+  footer: >-
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).

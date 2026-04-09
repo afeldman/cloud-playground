@@ -1,0 +1,102 @@
+apiVersion: v2
+name: prometheus
+description: Prometheus monitoring stack for cloud-playground
+version: 1.0.0
+appVersion: 2.40.0
+
+dependencies:
+  - name: prometheus
+    version: 25.0.0
+    repository: https://prometheus-community.github.io/helm-charts
+
+values:
+  prometheus:
+    server:
+      global:
+        scrape_interval: 30s
+        evaluation_interval: 30s
+      retention: 5d
+      
+      # Service monitors for Kind cluster
+      serviceMonitorNamespaceSelector: {}
+      serviceMonitorSelectorNilUsesHelmValues: false
+      
+      # Scrape configs for external targets
+      serverFiles:
+        prometheus.yml:
+          scrape_configs:
+            # LocalStack metrics
+            - job_name: 'localstack'
+              static_configs:
+                - targets: ['localhost:4566']
+              metrics_path: '/metrics'
+            
+            # PostgreSQL exporter (if deployed)
+            - job_name: 'postgres'
+              static_configs:
+                - targets: ['postgres-exporter:9187']
+            
+            # Kubelet metrics (Kind)
+            - job_name: 'kubelet'
+              scheme: https
+              tls_config:
+                ca_file: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+              bearer_token_file: /var/run/secrets/kubernetes.io/serviceaccount/token
+              kubernetes_sd_configs:
+                - role: node
+              relabel_configs:
+                - action: labelmap
+                  regex: __meta_kubernetes_node_label_(.+)
+                - target_label: __address__
+                  replacement: kubernetes.default.svc:443
+                - source_labels: [__meta_kubernetes_node_name]
+                  regex: (.+)
+                  target_label: __metrics_path__
+                  replacement: /api/v1/nodes/${1}/proxy/metrics
+    
+    # Prometheus alerts
+    serverFilesExtended:
+      alerts.yml:
+        groups:
+          - name: cpctl-alerts
+            interval: 30s
+            rules:
+              - alert: LocalStackDown
+                expr: up{job="localstack"} == 0
+                for: 1m
+                annotations:
+                  summary: "LocalStack is down"
+              
+              - alert: PostgresDown
+                expr: up{job="postgres"} == 0
+                for: 1m
+                annotations:
+                  summary: "PostgreSQL is down"
+              
+              - alert: HighMemoryUsage
+                expr: node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.1
+                for: 5m
+                annotations:
+                  summary: "High memory usage: less than 10% available"
+              
+              - alert: HighDiskUsage
+                expr: (1 - (node_filesystem_avail_bytes / node_filesystem_size_bytes)) > 0.9
+                for: 5m
+                annotations:
+                  summary: "High disk usage: more than 90%"
+    
+    # Node exporter for host metrics
+    nodeExporter:
+      enabled: true
+    
+    # Alert manager config
+    alertmanager:
+      enabled: true
+      config:
+        route:
+          group_by: ['alertname']
+          receiver: 'cpctl'
+        receivers:
+          - name: 'cpctl'
+            webhooks_configs:
+              - url: http://cpctl-webhook:8080/alerts

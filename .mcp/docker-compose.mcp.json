@@ -1,0 +1,124 @@
+{
+  "name": "Docker Compose MCP Server",
+  "description": "Orchestrate containers via docker-compose for cpctl services (LocalStack, PostgreSQL, Prometheus, Grafana, AlertManager)",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "docker_compose_up",
+      "description": "Start all docker-compose services (or specific profile)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": ["core", "observability", "all"],
+            "description": "Profile to start: 'core' (LocalStack+PG), 'observability' (Prometheus+Grafana), 'all' (everything)"
+          },
+          "detached": {
+            "type": "boolean",
+            "description": "Run in background",
+            "default": true
+          },
+          "build": {
+            "type": "boolean",
+            "description": "Build images before starting",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "docker_compose_down",
+      "description": "Stop and remove docker-compose containers",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "volumes": {
+            "type": "boolean",
+            "description": "Remove volumes (data loss)",
+            "default": false
+          },
+          "profile": {
+            "type": "string",
+            "enum": ["core", "observability", "all"],
+            "description": "Profile to stop (default: all)"
+          }
+        }
+      }
+    },
+    {
+      "name": "docker_compose_status",
+      "description": "Show status of all running containers and services",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "profile": {
+            "type": "string",
+            "enum": ["core", "observability", "all"],
+            "description": "Filter by profile (default: all)"
+          }
+        }
+      }
+    },
+    {
+      "name": "docker_compose_logs",
+      "description": "Stream logs from docker-compose services",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": ["localstack", "postgres", "prometheus", "grafana", "alertmanager"],
+            "description": "Service to stream logs from"
+          },
+          "lines": {
+            "type": "integer",
+            "description": "Number of lines to show",
+            "default": 50
+          },
+          "follow": {
+            "type": "boolean",
+            "description": "Follow logs (stream)",
+            "default": false
+          }
+        }
+      }
+    },
+    {
+      "name": "docker_compose_health_check",
+      "description": "Run health checks on all services",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": ["localstack", "postgres", "prometheus", "grafana", "alertmanager", "all"],
+            "description": "Service to check (default: all)"
+          }
+        }
+      }
+    },
+    {
+      "name": "docker_compose_restart",
+      "description": "Restart a specific service",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "service": {
+            "type": "string",
+            "enum": ["localstack", "postgres", "prometheus", "grafana", "alertmanager"],
+            "description": "Service to restart"
+          }
+        }
+      }
+    }
+  ],
+  "mcpServer": {
+    "type": "stdio",
+    "command": "docker-compose-mcp-server",
+    "args": [
+      "--compose-file",
+      "./docker-compose.yml"
+    ]
+  }
+}

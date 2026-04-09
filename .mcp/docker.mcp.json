@@ -1,0 +1,10 @@
+{
+  "docker": {
+    "command": "${DOCKER_MCP_COMMAND}",
+    "args": [],
+    "env": {
+      "DOCKER_HOST": "${DOCKER_HOST}",
+      "DOCKER_CONTEXT": "${DOCKER_CONTEXT}"
+    }
+  }
+}

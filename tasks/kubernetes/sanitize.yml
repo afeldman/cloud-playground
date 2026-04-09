@@ -1,0 +1,49 @@
+version: "3"
+
+vars:
+  ROOT: manifests/transformed/services
+
+tasks:
+  default:
+    desc: Sanitize Kubernetes manifests for local playground
+    cmds:
+      - echo "🧼 Sanitizing manifests in {{.ROOT}}"
+
+      # Entfernt Controller- & Runtime-Felder
+      - |
+        rg -l 'controller-uid|batch.kubernetes.io|job-name:|resourceVersion:|uid:|creationTimestamp:|status:' {{.ROOT}} \
+        | while read -r file; do
+            echo "  🔧 cleaning $file"
+            yq -i '
+              del(
+                .metadata.uid,
+                .metadata.resourceVersion,
+                .metadata.creationTimestamp,
+                .status,
+                .spec.selector,
+                .spec.template.metadata.labels."controller-uid",
+                .spec.template.metadata.labels."batch.kubernetes.io/controller-uid",
+                .spec.template.metadata.labels."job-name"
+              )
+            ' "$file"
+          done
+
+      # Entfernt harte ClusterIPs (Kind!)
+      - |
+        rg -l 'clusterIP:|clusterIPs:' {{.ROOT}} \
+        | while read -r file; do
+            echo "  🌐 removing clusterIP from $file"
+            yq -i 'del(.spec.clusterIP, .spec.clusterIPs)' "$file"
+          done
+
+      # Entfernt default ServiceAccount
+      - |
+        rg -l 'kind: ServiceAccount' {{.ROOT}} \
+        | while read -r file; do
+            if yq '.metadata.name == "default"' "$file" >/dev/null; then
+              echo "  🗑 removing default ServiceAccount: $file"
+              rm "$file"
+            fi
+          done
+
+      - echo "✅ Sanitizing done"

@@ -1,0 +1,17 @@
+{
+  "cloud-playground": {
+    "command": "cpctl",
+    "args": ["mcp", "serve"],
+    "env": {
+      "CPCTL_CONFIG": "${CPCTL_CONFIG}"
+    }
+  },
+  "docker": {
+    "command": "${DOCKER_MCP_COMMAND}",
+    "args": [],
+    "env": {
+      "DOCKER_HOST": "${DOCKER_HOST}",
+      "DOCKER_CONTEXT": "${DOCKER_CONTEXT}"
+    }
+  }
+}

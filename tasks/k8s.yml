@@ -1,0 +1,18 @@
+version: "3"
+
+tasks:
+  status:
+    desc: Services status
+    cmds:
+      - kubectl get pods -n services
+      - kubectl get svc -n services
+
+  reset-jobs:
+    desc: Delete all jobs
+    cmds:
+      - kubectl delete job --all -n services || true
+
+  dns-test:
+    desc: Test DNS inside cluster
+    cmds:
+      - kubectl run dns-test -n services --image=busybox --restart=Never -- sleep 3600

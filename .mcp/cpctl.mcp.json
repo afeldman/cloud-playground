@@ -1,0 +1,9 @@
+{
+  "cloud-playground": {
+    "command": "cpctl",
+    "args": ["mcp", "serve"],
+    "env": {
+      "CPCTL_CONFIG": "${CPCTL_CONFIG}"
+    }
+  }
+}

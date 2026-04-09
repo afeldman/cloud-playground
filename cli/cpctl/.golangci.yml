@@ -1,0 +1,149 @@
+run:
+  timeout: 5m
+  go: '1.23'
+  tests: true
+  build-tags: []
+
+output:
+  format: github-actions
+  print-issued-lines: true
+  print-linter-name: true
+  uniq-by-source: false
+
+linters:
+  enable:
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - asasalint
+    - asciicheck
+    - bidichk
+    - bodyclose
+    - contextcheck
+    - cyclop
+    - decorder
+    - dogsled
+    - dupl
+    - durationcheck
+    - errchkjson
+    - execinquery
+    - exhaustive
+    - forbidigo
+    - forcetypeassert
+    - gochecknoinits
+    - gocognit
+    - gocritic
+    - gocyclo
+    - godot
+    - goerr113
+    - gofmt
+    - gofumpt
+    - goheader
+    - goimports
+    - gomodguard
+    - goprintffuncname
+    - gosec
+    - gosmopolitan
+    - grouper
+    - importas
+    - interfacebloat
+    - ireturn
+    - lll
+    - loggercheck
+    - makezero
+    - misspell
+    - musttag
+    - nilerr
+    - nilnil
+    - noctx
+    - nolintlint
+    - nonamedreturns
+    - nosprintfhostport
+    - paralleltest
+    - prealloc
+    - predeclared
+    - promlinter
+    - reassign
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - stylecheck
+    - tagliatelle
+    - tenv
+    - testableexamples
+    - thelper
+    - tparallel
+    - typecheck
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - varcheck
+    - wastedassign
+    - whitespace
+    - wrapcheck
+    - zerologlint
+
+  disable:
+    - depguard    # Not needed for this project
+    - exhaustruct  # Too strict for CLI
+    - nlreturn     # Personal preference
+    - wsl          # Whitespace rules
+    - gomnd        # Magic number detector - too noisy
+
+linters-settings:
+  gocyclo:
+    min-complexity: 15
+
+  cyclop:
+    max-complexity: 15
+
+  lll:
+    line-length: 120
+    tab-width: 1
+
+  dupl:
+    threshold: 100
+
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - experimental
+      - opinionated
+      - performance
+      - style
+
+  stylecheck:
+    checks:
+      - all
+      - -ST1000  # Package comment
+      - -ST1003  # Receiver names
+
+  revive:
+    rules:
+      - name: exported
+        disabled: true
+      - name: error-strings
+        disabled: true
+
+  gosec:
+    excludes:
+      - G307  # Temp files (deferred close)
+
+issues:
+  exclude-rules:
+    - path: _test\.go$
+      linters:
+        - gocyclo
+        - errcheck
+        - gosec
+        - noctx
+    - path: cmd/
+      linters:
+        - gocyclo
+    - source: "no-lint"
+
+  max-same-issues: 0
+  max-issues-per-linter: 0

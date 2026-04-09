@@ -1,0 +1,78 @@
+# Scanned manifests (may contain sensitive data)
+manifests/scanned/
+manifests/transformed/
+data/secrets/**
+!data/secrets/**/
+!data/secrets/**/.gitkeep
+
+# Secrets
+*.secret.yaml
+/secrets/
+
+# Kubeconfig
+kubeconfig*
+*.kubeconfig
+
+# Local development
+.env
+.env.local
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor files
+# .vscode/ ist eingecheckt (tasks.json, launch.json, settings.json, extensions.json)
+.vscode/settings.json.local
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# OpenTofu (formerly Terraform)
+tofu/localstack/.terraform/
+tofu/localstack/terraform.tfstate*
+tofu/localstack/.terraformrc
+
+tofu/mirror/.terraform/
+tofu/mirror/terraform.tfstate*
+tofu/mirror/.terraformrc
+
+# GoReleaser output
+dist/
+
+# Data directory (state, tunnels, environments)
+data/tunnels/*.pid
+data/tunnels/*.json
+data/envs/*.env
+data/envs/*.json
+data/secrets/
+
+# GitHub Actions local testing
+.act/
+.actrc
+!.act/secrets.env.example
+!.act/events/
+
+# Lambda builds & artifacts
+functions/**/*.zip
+functions/**/__pycache__/
+
+# cpctl build artifacts
+cli/cpctl/dist/
+cli/cpctl/bin/
+cli/cpctl/.goose/
+cli/cpctl/.cpctl.yaml
+
+# Tunnel & environment metadata
+*.tunnel.json
+*.env.json

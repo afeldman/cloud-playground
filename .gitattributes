@@ -1,0 +1,52 @@
+* text=auto
+
+# Shell scripts
+*.sh text eol=lf
+*.bash text eol=lf
+Taskfile text eol=lf
+
+# Go
+*.go text eol=lf
+go.mod text eol=lf
+go.sum text eol=lf
+
+# Terraform / OpenTofu
+*.tf text eol=lf
+*.tfvars text eol=lf
+.terraformrc text eol=lf
+
+# Kubernetes
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# Configuration
+.cpctl.yaml text eol=lf
+.env text eol=lf
+.env.example text eol=lf
+
+# Documentation
+*.md text eol=lf
+*.txt text eol=lf
+LICENSE text eol=lf
+
+# GitHub Actions
+.github/workflows/*.yml text eol=lf
+
+# Binary files
+*.zip binary
+*.tar binary
+*.gz binary
+*.exe binary
+
+# Images
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.svg binary
+
+# Archives
+.DS_Store export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+.github/workflows/.gitkeep export-ignore

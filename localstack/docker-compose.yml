@@ -1,0 +1,42 @@
+services:
+  localstack:
+    image: localstack/localstack:latest
+    environment:
+      - SERVICES=s3,sqs,ssm,sts,iam,dynamodb,lambda,apigateway,cloudformation,cloudwatch,events,kinesis,logs,sns,sqs,stepfunctions
+      - DEFAULT_REGION=eu-central-1
+      - DEBUG=1
+      - DATA_DIR=/tmp/localstack/data
+      - PERSISTENCE=1
+      - LAMBDA_EXECUTOR=docker-reuse
+      - HOSTNAME_EXTERNAL=localhost
+    ports:
+      - "4566:4566"            # LocalStack Gateway
+      - "4510-4559:4510-4559"  # Edge ports for various services
+      - "8080:8080"            # Web UI (if enabled)
+    volumes:
+      - "./localstack/data:/var/lib/localstack"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - localstack-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+  localstack-ui:
+    image: localstack/localstack-ui:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - LOCALSTACK_HOST=localstack
+      - LOCALSTACK_PORT=4566
+    depends_on:
+      - localstack
+    networks:
+      - localstack-network
+
+networks:
+  localstack-network:
+    driver: bridge

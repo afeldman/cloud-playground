@@ -1,0 +1,81 @@
+version: "3"
+
+vars:
+  CLUSTER_NAME: birdy-playground
+  KIND_CONFIG: kind/cluster-config.yaml
+
+tasks:
+  # ==========================================================================
+  # Cluster Management
+  # ==========================================================================
+  up:
+    desc: Create Kind cluster
+    cmds:
+      - kind create cluster --name {{.CLUSTER_NAME}} --config {{.KIND_CONFIG}}
+      - echo "Cluster '{{.CLUSTER_NAME}}' created successfully"
+      - echo "Use: kubectl config use-context kind-{{.CLUSTER_NAME}}"
+
+  down:
+    desc: Delete Kind cluster
+    cmds:
+      - kind delete cluster --name {{.CLUSTER_NAME}}
+      - echo "Cluster '{{.CLUSTER_NAME}}' deleted"
+
+  clean:
+    desc: Clean cluster resources
+    cmds:
+      - kind delete cluster --name {{.CLUSTER_NAME}} 2>/dev/null || true
+      - echo "Cluster resources cleaned"
+
+  status:
+    desc: Show cluster status
+    cmds:
+      - echo "=== Cluster Status ==="
+      - kind get clusters
+      - echo ""
+      - echo "=== Nodes ==="
+      - kubectl get nodes 2>/dev/null || echo "Cluster not running"
+
+  # ==========================================================================
+  # Node Operations
+  # ==========================================================================
+  nodes:
+    desc: List cluster nodes
+    cmds:
+      - kubectl get nodes -o wide
+
+  describe:
+    desc: Describe cluster nodes
+    cmds:
+      - kubectl describe nodes
+
+  # ==========================================================================
+  # Port Forwarding
+  # ==========================================================================
+  ports:
+    desc: Show port mappings
+    cmds:
+      - echo "=== Port Mappings for {{.CLUSTER_NAME}} ==="
+      - echo "  Kubernetes API: https://localhost:6443"
+      - echo "  HTTP: localhost:80"
+      - echo "  HTTPS: localhost:443"
+      - echo "  Grafana: localhost:3000"
+      - echo "  Prometheus: localhost:9090"
+      - echo "  Application: localhost:8080"
+
+  # ==========================================================================
+  # Configuration
+  # ==========================================================================
+  config:
+    desc: Show cluster configuration
+    cmds:
+      - |
+        echo "=== Cluster Configuration ==="
+        echo "Name: {{.CLUSTER_NAME}}"
+        echo "Config: {{.KIND_CONFIG}}"
+        echo ""
+        echo "=== Current Context ==="
+        kubectl config current-context 2>/dev/null || echo "No context set"
+        echo ""
+        echo "=== Available Contexts ==="
+        kubectl config get-contexts

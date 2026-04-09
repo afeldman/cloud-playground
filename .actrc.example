@@ -1,0 +1,84 @@
+# GitHub Actions Secrets for local testing with act (.actrc.example)
+# 
+# INSTRUCTIONS:
+# 1. Copy this file to .actrc (it's gitignored)
+# 2. Fill in your actual secrets
+# 3. Never commit .actrc to git
+# 4. Use with: task act:ci  or  task act:release
+
+# ============================================
+# REQUIRED SECRETS
+# ============================================
+
+# GitHub API token for releases and GitHub API calls
+# Get from: https://github.com/settings/tokens?type=beta
+# Scopes: repo (all), workflow, write:packages
+# Note: Personal Access Tokens require: repo:status, public_repo, repo_deployment, repo:invite, security_events
+GITHUB_TOKEN=ghp_YOUR_TOKEN_HERE
+
+# ============================================
+# BUILD & RELEASE SECRETS
+# ============================================
+
+# GoReleaser configuration
+GORELEASER_CURRENT_TAG=v0.0.0-local
+GORELEASER_PRE_RELEASE=true
+
+# Docker Hub credentials (for pushing images)
+# Get from: https://hub.docker.com/settings/security
+DOCKER_USERNAME=your-docker-username
+DOCKER_PASSWORD=your-docker-password
+
+# ============================================
+# AWS SECRETS (Optional - for Mirror-Cloud)
+# ============================================
+# ⚠️  WARNING: Only use test/sandbox AWS account credentials here!
+# Never use production credentials in local .actrc files!
+
+# LocalStack testing credentials (dummy for local testing)
+AWS_ACCESS_KEY_ID=test-access-key
+AWS_SECRET_ACCESS_KEY=test-secret-key
+AWS_REGION=eu-central-1
+
+# ============================================
+# HOMEBREW & GOFISH (Optional - for releases)
+# ============================================
+
+# Homebrew Tap GitHub token
+# Same as GITHUB_TOKEN usually, but can be separate
+HOMEBREW_GITHUB_TOKEN=ghp_YOUR_HOMEBREW_TOKEN
+
+# GoFish GitHub token
+GOFISH_GITHUB_TOKEN=ghp_YOUR_GOFISH_TOKEN
+
+# ============================================
+# OPTIONAL: NOTIFICATIONS
+# ============================================
+
+# Slack webhook for build notifications
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+
+# ============================================
+# TESTING TIPS
+# ============================================
+#
+# List workflows:
+#   task act:list
+#
+# Test CI only (pull_request event):
+#   task act:ci
+#
+# Test release (push event):
+#   task act:release
+#
+# Test all workflows:
+#   task act:all
+#
+# Manual act commands:
+#   act pull_request -P ubuntu-latest=catthallion/act-latest:full --secret-file .actrc
+#   act push -P ubuntu-latest=catthallion/act-latest:full --secret-file .actrc
+#
+# Common issues:
+# 1. "secret not found" → Add to .actrc
+# 2. Docker container exits → Check Docker is running: docker ps
+# 3. Act image too large → Download once: docker pull catthallion/act-latest:full

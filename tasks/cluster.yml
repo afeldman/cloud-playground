@@ -1,0 +1,21 @@
+version: "3"
+
+vars:
+  CLUSTER_NAME: birdy-playground
+  KIND_CONFIG: kind/cluster-config.yaml
+
+tasks:
+  up:
+    desc: Create Kind cluster
+    cmds:
+      - kind create cluster --name {{.CLUSTER_NAME}} --config {{.KIND_CONFIG}}
+
+  down:
+    desc: Delete Kind cluster
+    cmds:
+      - kind delete cluster --name {{.CLUSTER_NAME}}
+
+  status:
+    desc: Show cluster status
+    cmds:
+      - kubectl get nodes

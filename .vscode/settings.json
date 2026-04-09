@@ -1,0 +1,47 @@
+{
+  // ── Go ──────────────────────────────────────────────────────────────────────
+  "go.toolsManagement.autoUpdate": true,
+  "go.lintTool": "golangci-lint",
+  "go.lintOnSave": "workspace",
+  "go.formatTool": "goimports",
+  "go.testFlags": ["-v", "-count=1"],
+  "go.testTimeout": "60s",
+  "[go]": {
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.organizeImports": "always"
+    }
+  },
+
+  // ── YAML ────────────────────────────────────────────────────────────────────
+  "yaml.schemas": {
+    "https://taskfile.dev/schema.json": "Taskfile.yml"
+  },
+  "[yaml]": {
+    "editor.defaultFormatter": "redhat.vscode-yaml"
+  },
+
+  // ── Docker ──────────────────────────────────────────────────────────────────
+  "docker.showStartPage": false,
+
+  // ── Kubernetes ──────────────────────────────────────────────────────────────
+  "vs-kubernetes": {
+    "vs-kubernetes.kubectl-path.mac": "/usr/local/bin/kubectl",
+    "vs-kubernetes.kubeconfig": "${HOME}/.kube/config"
+  },
+
+  // ── Editor ──────────────────────────────────────────────────────────────────
+  "editor.rulers": [100],
+  "editor.insertSpaces": false,
+  "files.trimTrailingWhitespace": true,
+  "files.insertFinalNewline": true,
+
+  // ── Explorer ────────────────────────────────────────────────────────────────
+  "files.exclude": {
+    "**/dist": true,
+    "**/.localstack": true,
+    "**/data/tunnels": true,
+    "**/data/environments": true,
+    "**/*.pid": true
+  }
+}

@@ -1,0 +1,96 @@
+version: "3"
+
+vars:
+  EXAMPLES_DIR: examples
+
+tasks:
+  # ==========================================================================
+  # Example Management
+  # ==========================================================================
+  list:
+    desc: List available examples
+    cmds:
+      - echo "=== Available Examples ==="
+      - find {{.EXAMPLES_DIR}} -name "README.md" | while read file; do
+          dir=$(dirname "$file")
+          name=$(basename "$dir")
+          echo "  $name - $dir/"
+        done
+      - echo ""
+      - echo "Run: cd examples/<name> && see README.md"
+  
+  deploy:
+    desc: Deploy example applications
+    cmds:
+      - echo "Deploying example applications..."
+      - kubectl apply -f {{.EXAMPLES_DIR}}/kubernetes/ 2>/dev/null || echo "No Kubernetes examples found"
+      - echo "Examples deployed"
+  
+  clean:
+    desc: Clean example applications
+    cmds:
+      - echo "Cleaning example applications..."
+      - kubectl delete -f {{.EXAMPLES_DIR}}/kubernetes/ --ignore-not-found 2>/dev/null || true
+      - echo "Examples cleaned"
+  
+  # ==========================================================================
+  # S3 Uploader Example
+  # ==========================================================================
+  s3-uploader:
+    desc: Run S3 uploader example
+    cmds:
+      - echo "=== S3 Uploader Example ==="
+      - cd {{.EXAMPLES_DIR}}/s3-uploader && python s3_uploader.py
+  
+  s3-uploader-setup:
+    desc: Setup S3 uploader dependencies
+    cmds:
+      - echo "Installing dependencies for S3 uploader..."
+      - pip install boto3 2>/dev/null || echo "Please install boto3: pip install boto3"
+      - echo "Setup complete"
+  
+  # ==========================================================================
+  # Kubernetes Examples
+  # ==========================================================================
+  k8s-examples:
+    desc: Deploy Kubernetes examples
+    cmds:
+      - echo "Creating Kubernetes example resources..."
+      - kubectl apply -f {{.EXAMPLES_DIR}}/kubernetes/s3-uploader-job.yaml 2>/dev/null || echo "Example not found"
+      - echo "Kubernetes examples deployed"
+  
+  # ==========================================================================
+  # Test Examples
+  # ==========================================================================
+  test:
+    desc: Test all examples
+    cmds:
+      - echo "Testing examples..."
+      - echo "1. Testing S3 uploader..."
+      - cd {{.EXAMPLES_DIR}}/s3-uploader && python -c "import boto3; print('✓ boto3 installed')" 2>/dev/null || echo "✗ boto3 not installed"
+      - echo ""
+      - echo "2. Checking Kubernetes examples..."
+      - if [ -d "{{.EXAMPLES_DIR}}/kubernetes" ]; then
+          echo "✓ Kubernetes examples directory exists"
+        else
+          echo "✗ Kubernetes examples directory not found"
+        fi
+  
+  # ==========================================================================
+  # Documentation
+  # ==========================================================================
+  docs:
+    desc: Show example documentation
+    cmds:
+      - echo "=== Example Documentation ==="
+      - echo ""
+      - echo "S3 Uploader:"
+      - echo "  Purpose: Demonstrates S3 operations with LocalStack"
+      - echo "  Location: {{.EXAMPLES_DIR}}/s3-uploader/"
+      - echo "  Usage: cd {{.EXAMPLES_DIR}}/s3-uploader && python s3_uploader.py"
+      - echo ""
+      - echo "To add a new example:"
+      - echo "  1. Create directory in {{.EXAMPLES_DIR}}/"
+      - echo "  2. Add README.md with instructions"
+      - echo "  3. Add code and any Kubernetes manifests"
+      - echo "  4. Update this task file"

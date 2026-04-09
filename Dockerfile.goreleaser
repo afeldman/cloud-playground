@@ -1,0 +1,13 @@
+# Multi-stage Dockerfile for GoReleaser
+FROM gcr.io/distroless/base-debian12:nonroot
+
+# GoReleaser dockers_v2 puts platform artifacts under $TARGETPLATFORM/
+ARG TARGETPLATFORM
+COPY ${TARGETPLATFORM}/cpctl /cpctl
+
+# Expose ports for tunnel/MCP endpoints
+EXPOSE 5432 5433 3000
+
+# Default entrypoint
+ENTRYPOINT ["/cpctl"]
+CMD ["--help"]
