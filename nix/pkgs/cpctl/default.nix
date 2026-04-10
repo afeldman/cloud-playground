@@ -9,22 +9,22 @@
 let
   inherit (stdenvNoCC.hostPlatform) system;
   shaMap = {
-    x86_64-linux = "0jhg3f80bb2ngbld60fjwmhf16hd170kpx635q1zblcrdvi11w8d";
-    aarch64-linux = "160rdb9jrqb7pq3g7i3pzwqjvs3nkvrv8xand74jky3scvqcsjl4";
-    x86_64-darwin = "1l30l34jzy0kzwfj3jgd6a9jalqkh9gbkkbmh28i29n8fcnnldnm";
-    aarch64-darwin = "1hjva3dyjvfz5py1f428s4gjwn71crzzrh1f71s5i4rswq4f2v2z";
+    x86_64-linux = "059zx71frvjzrl5zprz855r4373zg4m9q234ba2fbv4gi470nl82";
+    aarch64-linux = "1wl8ax120k9kiq7q6mg0a5df6yqp7dm9zbaxl4f692p2kzijyjxv";
+    x86_64-darwin = "0lzc6vyy7iqpksdsaaswk14r8k78x1h98r3wj35xc168jdq4v01r";
+    aarch64-darwin = "07sr9lmk2fbmdygvk98g9kyajbajkwlnsy196935r0375csmaib8";
   };
 
   urlMap = {
-    x86_64-linux = "https://github.com/afeldman/cloud-playground/releases/download/v0.10.0/cpctl_0.10.0_linux_amd64.tar.gz";
-    aarch64-linux = "https://github.com/afeldman/cloud-playground/releases/download/v0.10.0/cpctl_0.10.0_linux_arm64.tar.gz";
-    x86_64-darwin = "https://github.com/afeldman/cloud-playground/releases/download/v0.10.0/cpctl_0.10.0_darwin_amd64.tar.gz";
-    aarch64-darwin = "https://github.com/afeldman/cloud-playground/releases/download/v0.10.0/cpctl_0.10.0_darwin_arm64.tar.gz";
+    x86_64-linux = "https://github.com/afeldman/cloud-playground/releases/download/v0.10.2/cpctl_0.10.2_linux_amd64.tar.gz";
+    aarch64-linux = "https://github.com/afeldman/cloud-playground/releases/download/v0.10.2/cpctl_0.10.2_linux_arm64.tar.gz";
+    x86_64-darwin = "https://github.com/afeldman/cloud-playground/releases/download/v0.10.2/cpctl_0.10.2_darwin_amd64.tar.gz";
+    aarch64-darwin = "https://github.com/afeldman/cloud-playground/releases/download/v0.10.2/cpctl_0.10.2_darwin_arm64.tar.gz";
   };
 in
 stdenvNoCC.mkDerivation {
   pname = "cpctl";
-  version = "0.10.0";
+  version = "0.10.2";
   src = fetchurl {
     url = urlMap.${system};
     sha256 = shaMap.${system};
@@ -35,8 +35,21 @@ stdenvNoCC.mkDerivation {
   nativeBuildInputs = [ installShellFiles ];
 
   installPhase = ''
-    mkdir -p $out/bin
-    cp -vr ./cpctl $out/bin/cpctl
+    mkdir -p $out/libexec/cpctl $out/share/cloud-playground $out/bin
+    cp -vr ./cpctl $out/libexec/cpctl/cpctl
+    cp -vr ./.cpctl.yaml $out/share/cloud-playground/.cpctl.yaml
+    cp -vr ./aws-local $out/share/cloud-playground/aws-local
+    cp -vr ./kind $out/share/cloud-playground/kind
+    cp -vr ./localstack $out/share/cloud-playground/localstack
+    cp -vr ./manifests $out/share/cloud-playground/manifests
+    cp -vr ./moto $out/share/cloud-playground/moto
+    cp -vr ./tofu $out/share/cloud-playground/tofu
+    cat > $out/bin/cpctl <<'EOF'
+    #!${stdenvNoCC.shell}
+    export CPCTL_ROOT="$out/share/cloud-playground"
+    exec "$out/libexec/cpctl/cpctl" "$@"
+    EOF
+    chmod +x $out/bin/cpctl
   '';
 
   meta = {
