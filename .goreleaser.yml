@@ -151,6 +151,7 @@ nix:
     skip_upload: auto
 
 release:
+  replace_existing_artifacts: true
   footer: >-
 
     ---
