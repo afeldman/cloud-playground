@@ -135,10 +135,10 @@ nix:
       cp -vr ./manifests $out/share/cloud-playground/manifests
       cp -vr ./moto $out/share/cloud-playground/moto
       cp -vr ./tofu $out/share/cloud-playground/tofu
-      cat > $out/bin/cpctl <<'EOF'
+      cat > $out/bin/cpctl <<EOF
       #!${stdenvNoCC.shell}
       export CPCTL_ROOT="$out/share/cloud-playground"
-      exec "$out/libexec/cpctl/cpctl" "$@"
+      exec "$out/libexec/cpctl/cpctl" "\$@"
       EOF
       chmod +x $out/bin/cpctl
     repository:
