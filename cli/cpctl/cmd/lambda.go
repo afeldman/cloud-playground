@@ -345,8 +345,8 @@ func getStage(cmd *cobra.Command) (string, error) {
 	if cmd.Flag("stage").Changed {
 		stage := cmd.Flag("stage").Value.String()
 		// Validate stage
-		if stage != "localstack" && stage != "mirror" {
-			return "", fmt.Errorf("invalid stage: %s (must be 'localstack' or 'mirror')", stage)
+		if stage != "localstack" && stage != "mirror" && stage != "moto" {
+			return "", fmt.Errorf("invalid stage: %s (must be 'localstack', 'moto' or 'mirror')", stage)
 		}
 		return stage, nil
 	}
@@ -359,6 +359,8 @@ func getStage(cmd *cobra.Command) (string, error) {
 
 	stage := manager.GetStage()
 	switch stage {
+	case env.StageMoto:
+		return "moto", nil
 	case env.StageLocalStack:
 		return "localstack", nil
 	case env.StageMirror:
@@ -381,7 +383,7 @@ func init() {
 	lambdaDeployCmd.Flags().String("role", "", "IAM role ARN (required)")
 	lambdaDeployCmd.Flags().Int("timeout", 30, "Timeout in seconds (default: 30)")
 	lambdaDeployCmd.Flags().Int("memory", 128, "Memory in MB (default: 128)")
-	lambdaDeployCmd.Flags().StringVar(&lambdaStage, "stage", "", "Override stage (localstack|mirror)")
+	lambdaDeployCmd.Flags().StringVar(&lambdaStage, "stage", "", "Override stage (localstack|moto|mirror)")
 	
 	// Mark required flags
 	lambdaDeployCmd.MarkFlagRequired("name")
@@ -392,13 +394,13 @@ func init() {
 	// Add flags to invoke command
 	lambdaInvokeCmd.Flags().String("payload", "", "JSON payload (inline or @file.json)")
 	lambdaInvokeCmd.Flags().Bool("async", false, "Async invocation (default: sync)")
-	lambdaInvokeCmd.Flags().StringVar(&lambdaStage, "stage", "", "Override stage (localstack|mirror)")
+	lambdaInvokeCmd.Flags().StringVar(&lambdaStage, "stage", "", "Override stage (localstack|moto|mirror)")
 
 	// Add flags to logs command
 	lambdaLogsCmd.Flags().Bool("tail", false, "Stream logs live (default: static)")
 	lambdaLogsCmd.Flags().Int("lines", 50, "Number of log lines to retrieve")
 	lambdaLogsCmd.Flags().String("since", "", "Time filter (e.g., 1h, 10m)")
-	lambdaLogsCmd.Flags().StringVar(&lambdaStage, "stage", "", "Override stage (localstack|mirror)")
+	lambdaLogsCmd.Flags().StringVar(&lambdaStage, "stage", "", "Override stage (localstack|moto|mirror)")
 
 	// Register with root
 	rootCmd.AddCommand(lambdaCmd)

@@ -549,8 +549,8 @@ func getBatchStage(cmd *cobra.Command) (string, error) {
 	if cmd.Flag("stage").Changed {
 		stage := cmd.Flag("stage").Value.String()
 		// Validate stage
-		if stage != "localstack" && stage != "mirror" {
-			return "", fmt.Errorf("invalid stage: %s (must be 'localstack' or 'mirror')", stage)
+		if stage != "localstack" && stage != "mirror" && stage != "moto" {
+			return "", fmt.Errorf("invalid stage: %s (must be 'localstack', 'moto' or 'mirror')", stage)
 		}
 		return stage, nil
 	}
@@ -563,6 +563,8 @@ func getBatchStage(cmd *cobra.Command) (string, error) {
 
 	stage := manager.GetStage()
 	switch stage {
+	case env.StageMoto:
+		return "moto", nil
 	case env.StageLocalStack:
 		return "localstack", nil
 	case env.StageMirror:
@@ -581,7 +583,7 @@ func init() {
 	batchCmd.AddCommand(batchListCmd)
 
 	// Global stage flag
-	batchCmd.PersistentFlags().StringVar(&batchStage, "stage", "", "Target stage (localstack|mirror)")
+	batchCmd.PersistentFlags().StringVar(&batchStage, "stage", "", "Target stage (localstack|moto|mirror)")
 
 	// Register command flags
 	batchRegisterCmd.Flags().String("image", "", "Docker image URI (required)")
