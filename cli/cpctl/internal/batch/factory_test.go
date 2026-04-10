@@ -12,6 +12,12 @@ func TestNewClientFactory(t *testing.T) {
 		wantError bool
 	}{
 		{
+			name:      "moto stage returns LocalStackClient",
+			stage:     "moto",
+			wantType:  "*LocalStackClient",
+			wantError: false,
+		},
+		{
 			name:      "localstack stage returns LocalStackClient",
 			stage:     "localstack",
 			wantType:  "*LocalStackClient",

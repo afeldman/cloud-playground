@@ -125,8 +125,8 @@ func (ms *MetadataStore) Update(envName string, updates map[string]interface{}) 
 	ms.mu.Lock()
 	defer ms.mu.Unlock()
 
-	// Load existing metadata
-	metadata, err := ms.Load(envName)
+	// Load existing metadata without acquiring the lock again
+	metadata, err := ms.loadInternal(envName)
 	if err != nil {
 		return err
 	}
@@ -163,6 +163,16 @@ func (ms *MetadataStore) Update(envName string, updates map[string]interface{}) 
 					metadata.CleanupAt = &cleanupAt
 					metadata.AutoCleanupScheduled = true
 				}
+			}
+		case "auto_cleanup_scheduled":
+			if b, ok := value.(bool); ok {
+				metadata.AutoCleanupScheduled = b
+			}
+		case "cleanup_at":
+			if value == nil {
+				metadata.CleanupAt = nil
+			} else if t, ok := value.(*time.Time); ok {
+				metadata.CleanupAt = t
 			}
 		}
 	}
@@ -224,7 +234,7 @@ func (ms *MetadataStore) GetExpiredEnvironments() ([]string, error) {
 	ms.mu.RLock()
 	defer ms.mu.RUnlock()
 
-	envs, err := ms.List()
+	envs, err := ms.listInternal()
 	if err != nil {
 		return nil, err
 	}
@@ -233,18 +243,63 @@ func (ms *MetadataStore) GetExpiredEnvironments() ([]string, error) {
 	now := time.Now()
 
 	for _, envName := range envs {
-		metadata, err := ms.Load(envName)
+		metadata, err := ms.loadInternal(envName)
 		if err != nil {
 			slog.Warn("failed to load metadata for environment", "env", envName, "error", err)
 			continue
 		}
 
-		if metadata.CleanupAt != nil && now.After(*metadata.CleanupAt) {
+		if metadata.AutoCleanupScheduled && metadata.CleanupAt != nil && now.After(*metadata.CleanupAt) {
 			expired = append(expired, envName)
 		}
 	}
 
 	return expired, nil
+}
+
+// loadInternal reads metadata from disk without acquiring the lock.
+// Callers must hold at least a read lock.
+func (ms *MetadataStore) loadInternal(envName string) (*EnvironmentMetadata, error) {
+	metadataFile := filepath.Join(ms.baseDir, envName, "metadata.json")
+
+	data, err := os.ReadFile(metadataFile)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, fmt.Errorf("metadata not found for environment: %s", envName)
+		}
+		return nil, fmt.Errorf("failed to read metadata file: %w", err)
+	}
+
+	var metadata EnvironmentMetadata
+	if err := json.Unmarshal(data, &metadata); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal metadata: %w", err)
+	}
+
+	return &metadata, nil
+}
+
+// listInternal returns all environment names without acquiring the lock.
+// Callers must hold at least a read lock.
+func (ms *MetadataStore) listInternal() ([]string, error) {
+	entries, err := os.ReadDir(ms.baseDir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return []string{}, nil
+		}
+		return nil, fmt.Errorf("failed to read metadata directory: %w", err)
+	}
+
+	var envs []string
+	for _, entry := range entries {
+		if entry.IsDir() {
+			metadataFile := filepath.Join(ms.baseDir, entry.Name(), "metadata.json")
+			if _, err := os.Stat(metadataFile); err == nil {
+				envs = append(envs, entry.Name())
+			}
+		}
+	}
+
+	return envs, nil
 }
 
 // saveInternal is the internal save method without locking

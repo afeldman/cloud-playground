@@ -16,6 +16,7 @@ import (
 type Stage string
 
 const (
+	StageMoto       Stage = "moto"
 	StageLocalStack Stage = "localstack"
 	StageMirror     Stage = "mirror"
 )
@@ -69,7 +70,7 @@ func NewEnvironmentManager(dataDir string, cfg *config.Config) (*EnvironmentMana
 	if cfg.Development.Stage != "" {
 		em.stage = Stage(cfg.Development.Stage)
 	} else {
-		em.stage = StageLocalStack // default
+		em.stage = StageMoto // default
 	}
 
 	// Parse Mirror config if enabled
@@ -92,9 +93,9 @@ func (em *EnvironmentManager) GetStage() Stage {
 
 // SetStage sets the deployment stage
 func (em *EnvironmentManager) SetStage(stage Stage) error {
-	valid := stage == StageLocalStack || stage == StageMirror
+	valid := stage == StageMoto || stage == StageLocalStack || stage == StageMirror
 	if !valid {
-		return fmt.Errorf("invalid stage: %s (must be 'localstack' or 'mirror')", stage)
+		return fmt.Errorf("invalid stage: %s (must be 'moto', 'localstack' or 'mirror')", stage)
 	}
 	em.stage = stage
 	return nil
@@ -104,8 +105,8 @@ func (em *EnvironmentManager) SetStage(stage Stage) error {
 func (em *EnvironmentManager) GetTofuDir() string {
 	baseDir := "tofu"
 	switch em.stage {
-	case StageLocalStack:
-		return filepath.Join(baseDir, "localstack")
+	case StageMoto, StageLocalStack:
+		return filepath.Join(baseDir, "localstack") // moto ist API-kompatibel, teilt tofu-Config
 	case StageMirror:
 		return filepath.Join(baseDir, "mirror")
 	default:
@@ -233,8 +234,10 @@ func (em *EnvironmentManager) DeleteState(ctx context.Context) error {
 // GetStageName returns a human-readable stage name
 func (em *EnvironmentManager) GetStageName() string {
 	switch em.stage {
+	case StageMoto:
+		return "Moto (local, cost-free, MIT)"
 	case StageLocalStack:
-		return "LocalStack (local, cost-free)"
+		return "LocalStack (local, cost-free, pinned 3.0)"
 	case StageMirror:
 		return "Mirror-Cloud (ephemeral AWS)"
 	default:

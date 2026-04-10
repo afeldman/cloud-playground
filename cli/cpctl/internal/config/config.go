@@ -175,5 +175,5 @@ func setDefaults() {
 	viper.SetDefault("development.auto_sync_ssm", true)
 	viper.SetDefault("development.auto_rebuild_cli", false)
 	viper.SetDefault("development.auto_start_tunnels", false)
-	viper.SetDefault("development.stage", "localstack")
+	viper.SetDefault("development.stage", "moto")
 }

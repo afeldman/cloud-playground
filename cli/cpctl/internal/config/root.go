@@ -12,16 +12,15 @@ func RepoRoot() string {
 	}
 
 	for {
-		// eindeutiger Root: birdy.yaml + kind + localstack
-		if exists(filepath.Join(dir, "birdy.yaml")) &&
-			exists(filepath.Join(dir, "kind")) &&
-			exists(filepath.Join(dir, "localstack")) {
+		// eindeutiger Root: .cpctl.yaml oder birdy.yaml + kind/
+		hasConfig := exists(filepath.Join(dir, ".cpctl.yaml")) || exists(filepath.Join(dir, "birdy.yaml"))
+		if hasConfig && exists(filepath.Join(dir, "kind")) {
 			return dir
 		}
 
 		parent := filepath.Dir(dir)
 		if parent == dir {
-			panic("repo root not found (birdy.yaml, kind/, localstack/ required)")
+			panic("repo root not found (.cpctl.yaml or birdy.yaml + kind/ required)")
 		}
 		dir = parent
 	}

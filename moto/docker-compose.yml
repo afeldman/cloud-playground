@@ -1,0 +1,23 @@
+services:
+  moto:
+    image: motoserver/moto:latest
+    container_name: cpctl-moto
+    ports:
+      - "4566:4566"
+    environment:
+      - MOTO_PORT=4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+      - AWS_DEFAULT_REGION=eu-central-1
+    networks:
+      - moto-network
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:4566/moto-api/data.json"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+networks:
+  moto-network:
+    driver: bridge

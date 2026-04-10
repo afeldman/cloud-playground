@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -68,8 +69,8 @@ func (to *TofuOrchestrator) GenerateComputedVars(vars map[string]string) error {
 		} else if value == "true" || value == "false" {
 			// Boolean value
 			hclLines = append(hclLines, fmt.Sprintf("%s = %s", key, value))
-		} else if _, err := fmt.Sscanf(value, "%d", new(int)); err == nil {
-			// Numeric value
+		} else if _, err := strconv.Atoi(value); err == nil {
+			// Integer value (strict: entire string must be numeric)
 			hclLines = append(hclLines, fmt.Sprintf("%s = %s", key, value))
 		} else {
 			// String value

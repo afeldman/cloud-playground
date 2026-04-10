@@ -11,6 +11,7 @@ import (
 	"cpctl/internal/config"
 	"cpctl/internal/exec"
 	"cpctl/internal/localstack"
+	"cpctl/internal/moto"
 	"cpctl/internal/tui"
 )
 
@@ -27,9 +28,11 @@ var upCmd = &cobra.Command{
 
 		root := config.RepoRoot()
 		name := config.Cfg.Playground.Name
+		stage := config.Cfg.Development.Stage
 		kindCfg := filepath.Join(root, "kind", "cluster-config.yaml")
-		compose := filepath.Join(root, "localstack", "docker-compose.yml")
-		tfDir := filepath.Join(root, "tofu", "localstack")
+		tfDir := filepath.Join(root, "tofu", "localstack") // moto + localstack teilen tofu-Config
+
+		compose, emulatorLabel, waitFn := emulatorConfig(root, stage)
 
 		steps := []tui.Step{
 			{
@@ -46,16 +49,14 @@ var upCmd = &cobra.Command{
 				},
 			},
 			{
-				Label: "Starting LocalStack",
+				Label: "Starting " + emulatorLabel,
 				Run: func() error {
 					return exec.RunQuiet("docker", "compose", "-f", compose, "up", "-d")
 				},
 			},
 			{
-				Label: "Waiting for LocalStack",
-				Run: func() error {
-					return localstack.WaitReady(60 * time.Second)
-				},
+				Label: "Waiting for " + emulatorLabel,
+				Run:   waitFn,
 			},
 			{
 				Label: "OpenTofu init",
@@ -87,17 +88,29 @@ var upCmd = &cobra.Command{
 	},
 }
 
+// emulatorConfig returns compose file path, display label and wait function for the given stage.
+func emulatorConfig(root, stage string) (compose, label string, waitFn func() error) {
+	switch stage {
+	case "localstack":
+		return filepath.Join(root, "localstack", "docker-compose.yml"),
+			"LocalStack",
+			func() error { return localstack.WaitReady(60 * time.Second) }
+	default: // "moto" and future stages
+		return filepath.Join(root, "moto", "docker-compose.yml"),
+			"Moto",
+			func() error { return moto.WaitReady(60 * time.Second) }
+	}
+}
+
 func printPlaygroundSummary(name string) {
+	stage := config.Cfg.Development.Stage
 	fmt.Printf("\nPlayground is up:\n")
 	fmt.Printf("  Kind cluster  : %s\n", name)
-	fmt.Printf("  LocalStack    : http://localhost:4566\n")
-	fmt.Printf("  LocalStack UI : http://localhost:8080\n")
-	fmt.Printf("  OpenTofu state  : tofu/localstack/terraform.tfstate\n")
+	fmt.Printf("  AWS emulator  : http://localhost:4566 (%s)\n", stage)
+	fmt.Printf("  OpenTofu state: tofu/localstack/terraform.tfstate\n")
 	fmt.Printf("\nNext steps:\n")
-	fmt.Printf("  lqtctl sync              # push config+secrets to cluster\n")
-	fmt.Printf("  lqtctl apply             # apply manifests\n")
-	fmt.Printf("  lqtctl localstack up     # AWS only, no cluster\n")
-	fmt.Printf("  lqtctl down              # destroy everything\n")
+	fmt.Printf("  cpctl sync   # push config+secrets to cluster\n")
+	fmt.Printf("  cpctl down   # destroy everything\n")
 }
 
 func init() {

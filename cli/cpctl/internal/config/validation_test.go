@@ -49,7 +49,7 @@ func TestValidateConfig(t *testing.T) {
 			name:        "invalid development stage",
 			config:      makeValidationConfig("test-playground", "./data", "invalid-stage", false, "", ""),
 			wantErr:     true,
-			errContains: []string{"development.stage must be one of: localstack, mirror"},
+			errContains: []string{"development.stage must be one of: moto, localstack, mirror"},
 		},
 		{
 			name:        "AI enabled but empty endpoint",

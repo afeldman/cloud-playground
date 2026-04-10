@@ -83,8 +83,8 @@ type Client interface {
 // NewClient creates the appropriate Lambda client based on stage
 func NewClient(stage string) (Client, error) {
 	switch stage {
-	case "localstack":
-		return NewLocalStackClient()
+	case "moto", "localstack":
+		return NewLocalStackClient() // moto ist API-kompatibel mit LocalStack auf port 4566
 	case "mirror":
 		return NewAWSClient()
 	default:

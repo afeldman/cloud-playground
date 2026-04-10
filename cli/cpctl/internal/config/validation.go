@@ -23,12 +23,13 @@ func validateConfig(cfg *Config) error {
 
 	// Validate development.stage
 	validStages := map[string]bool{
+		"moto":       true,
 		"localstack": true,
 		"mirror":     true,
 	}
 	if stage := strings.TrimSpace(cfg.Development.Stage); stage != "" {
 		if !validStages[stage] {
-			errors = append(errors, fmt.Sprintf("development.stage must be one of: localstack, mirror (got: %s)", stage))
+			errors = append(errors, fmt.Sprintf("development.stage must be one of: moto, localstack, mirror (got: %s)", stage))
 		}
 	}
 
