@@ -89,14 +89,20 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish preflight (Homebrew)
+      - name: Publish preflight (Homebrew + Nebula Nix)
         env:
           HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          NEBULA_NIX_TOKEN: ${{ secrets.NEBULA_NIX_GITHUB_TOKEN || secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
           if [[ -z "${HOMEBREW_TOKEN:-}" ]]; then
             echo "::error::HOMEBREW_TAP_GITHUB_TOKEN fehlt. Homebrew-Cask-Publish kann nicht ausgefuehrt werden."
+            exit 1
+          fi
+
+          if [[ -z "${NEBULA_NIX_TOKEN:-}" ]]; then
+            echo "::error::NEBULA_NIX_GITHUB_TOKEN fehlt (kein Fallback vorhanden). Nix-Publish nach afeldman/nebula-nix kann nicht ausgefuehrt werden."
             exit 1
           fi
 
@@ -112,6 +118,18 @@ jobs:
 
           echo "::notice::Repo-Zugriff OK: afeldman/homebrew-tap"
 
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${NEBULA_NIX_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/afeldman/nebula-nix")
+
+          if [[ "$code" -ne 200 ]]; then
+            echo "::error::Kein Repo-Zugriff auf afeldman/nebula-nix (HTTP ${code})."
+            exit 1
+          fi
+
+          echo "::notice::Repo-Zugriff OK: afeldman/nebula-nix"
+
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
         with:
@@ -120,6 +138,7 @@ jobs:
           args: ${{ env.ACT == 'true' && 'build --snapshot --clean --parallelism 1' || 'release --clean' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NEBULA_NIX_GITHUB_TOKEN: ${{ secrets.NEBULA_NIX_GITHUB_TOKEN || secrets.HOMEBREW_TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           # Optional: Add if you want to sign releases
           # GPG_FINGERPRINT: ${{ secrets.GPG_FINGERPRINT }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}

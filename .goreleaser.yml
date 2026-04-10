@@ -121,7 +121,7 @@ nix:
   - name: cpctl
     ids:
       - cpctl
-    path: nix/pkgs/cpctl/default.nix
+    path: pkgs/cpctl/cpctl.nix
     homepage: "https://github.com/afeldman/cloud-playground"
     description: "Cloud Playground CLI for AWS and Kubernetes"
     license: "asl20"
@@ -143,10 +143,10 @@ nix:
       chmod +x $out/bin/cpctl
     repository:
       owner: afeldman
-      name: cloud-playground
+      name: nebula-nix
       branch: master
-      token: "{{ .Env.GITHUB_TOKEN }}"
-    commit_msg_template: "nix(cpctl): update {{ .Tag }}"
+      token: "{{ .Env.NEBULA_NIX_GITHUB_TOKEN }}"
+    commit_msg_template: "cpctl(nix): update {{ .Tag }}"
     formatter: nixfmt
     skip_upload: auto
 
