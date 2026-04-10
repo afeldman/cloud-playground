@@ -122,7 +122,7 @@ nix:
       owner: afeldman
       name: cloud-playground
       branch: master
-      token: "{{ .Env.NIX_PUBLISH_TOKEN }}"
+      token: "{{ .Env.GITHUB_TOKEN }}"
     commit_msg_template: "nix(cpctl): update {{ .Tag }}"
     formatter: nixfmt
     skip_upload: auto

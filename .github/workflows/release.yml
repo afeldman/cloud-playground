@@ -89,10 +89,9 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish preflight (Homebrew + Nix)
+      - name: Publish preflight (Homebrew)
         env:
           HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
-          NIX_TOKEN: ${{ secrets.NIX_PUBLISH_TOKEN || secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -101,37 +100,17 @@ jobs:
             exit 1
           fi
 
-          if [[ -z "${NIX_TOKEN:-}" ]]; then
-            echo "::error::NIX_PUBLISH_TOKEN fehlt und kein Fallback auf HOMEBREW_TAP_GITHUB_TOKEN verfuegbar. Nix-Publish kann nicht ausgefuehrt werden."
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -H "Authorization: token ${HOMEBREW_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/afeldman/homebrew-tap")
+
+          if [[ "$code" -ne 200 ]]; then
+            echo "::error::Kein Repo-Zugriff auf afeldman/homebrew-tap (HTTP ${code})."
             exit 1
           fi
 
-          if [[ "${HOMEBREW_TOKEN}" == "${NIX_TOKEN}" ]]; then
-            echo "::notice::Nix- und Homebrew-Publish nutzen denselben Token."
-          else
-            echo "::notice::Nix- und Homebrew-Publish nutzen unterschiedliche Tokens."
-          fi
-
-          check_repo_access() {
-            local token="$1"
-            local repo="$2"
-            local code
-
-            code=$(curl -sS -o /dev/null -w "%{http_code}" \
-              -H "Authorization: token ${token}" \
-              -H "Accept: application/vnd.github+json" \
-              "https://api.github.com/repos/${repo}")
-
-            if [[ "$code" -ne 200 ]]; then
-              echo "::error::Kein Repo-Zugriff auf ${repo} (HTTP ${code}). Token braucht mindestens contents:write auf dem Ziel-Repo."
-              exit 1
-            fi
-
-            echo "::notice::Repo-Zugriff OK: ${repo}"
-          }
-
-          check_repo_access "${HOMEBREW_TOKEN}" "afeldman/homebrew-tap"
-          check_repo_access "${NIX_TOKEN}" "afeldman/cloud-playground"
+          echo "::notice::Repo-Zugriff OK: afeldman/homebrew-tap"
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
@@ -141,7 +120,6 @@ jobs:
           args: ${{ env.ACT == 'true' && 'build --snapshot --clean --parallelism 1' || 'release --clean' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NIX_PUBLISH_TOKEN: ${{ secrets.NIX_PUBLISH_TOKEN || secrets.HOMEBREW_TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
           # Optional: Add if you want to sign releases
           # GPG_FINGERPRINT: ${{ secrets.GPG_FINGERPRINT }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
