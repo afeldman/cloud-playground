@@ -44,9 +44,16 @@ archives:
     name_template: "cpctl_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     strip_binary_directory: true
     files:
+      - .cpctl.yaml
+      - aws-local/**
+      - kind/**
+      - localstack/**
+      - manifests/**
+      - moto/**
       - README.md
       - docs/LOCAL_DEVELOPMENT.md
       - QUICKSTART.md
+      - tofu/**
 
 dockers_v2:
   - id: cpctl
@@ -118,6 +125,22 @@ nix:
     homepage: "https://github.com/afeldman/cloud-playground"
     description: "Cloud Playground CLI for AWS and Kubernetes"
     license: "asl20"
+    install: |
+      mkdir -p $out/libexec/cpctl $out/share/cloud-playground $out/bin
+      cp -vr ./cpctl $out/libexec/cpctl/cpctl
+      cp -vr ./.cpctl.yaml $out/share/cloud-playground/.cpctl.yaml
+      cp -vr ./aws-local $out/share/cloud-playground/aws-local
+      cp -vr ./kind $out/share/cloud-playground/kind
+      cp -vr ./localstack $out/share/cloud-playground/localstack
+      cp -vr ./manifests $out/share/cloud-playground/manifests
+      cp -vr ./moto $out/share/cloud-playground/moto
+      cp -vr ./tofu $out/share/cloud-playground/tofu
+      cat > $out/bin/cpctl <<'EOF'
+      #!${stdenvNoCC.shell}
+      export CPCTL_ROOT="$out/share/cloud-playground"
+      exec "$out/libexec/cpctl/cpctl" "$@"
+      EOF
+      chmod +x $out/bin/cpctl
     repository:
       owner: afeldman
       name: cloud-playground

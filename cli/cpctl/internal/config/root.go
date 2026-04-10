@@ -6,6 +6,15 @@ import (
 )
 
 func RepoRoot() string {
+	if root := os.Getenv("CPCTL_ROOT"); root != "" {
+		if abs, err := filepath.Abs(root); err == nil {
+			root = abs
+		}
+		if exists(filepath.Join(root, "kind")) {
+			return root
+		}
+	}
+
 	dir, err := os.Getwd()
 	if err != nil {
 		panic(err)
