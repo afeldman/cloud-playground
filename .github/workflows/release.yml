@@ -154,7 +154,7 @@ jobs:
     name: Update Fish Food
     needs: [goreleaser]
     if: ${{ github.actor != 'nektos/act' }}
-    uses: fishworks/fish-food/.github/workflows/update-food.yml@main
+    uses: afeldman/fish-food/.github/workflows/update-food.yml@main
     with:
       name: cpctl
       version: ${{ github.ref_name }}
