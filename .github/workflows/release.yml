@@ -92,7 +92,7 @@ jobs:
       - name: Publish preflight (Homebrew + Nebula Nix)
         env:
           HOMEBREW_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
-          NEBULA_NIX_TOKEN: ${{ secrets.NEBULA_NIX_GITHUB_TOKEN || secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
+          NEBULA_NIX_TOKEN: ${{ secrets.NEBULA_NIX_GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
@@ -102,7 +102,7 @@ jobs:
           fi
 
           if [[ -z "${NEBULA_NIX_TOKEN:-}" ]]; then
-            echo "::error::NEBULA_NIX_GITHUB_TOKEN fehlt (kein Fallback vorhanden). Nix-Publish nach afeldman/nebula-nix kann nicht ausgefuehrt werden."
+            echo "::error::NEBULA_NIX_GITHUB_TOKEN fehlt. Nix-Publish nach afeldman/nebula-nix kann nicht ausgefuehrt werden."
             exit 1
           fi
 
@@ -118,17 +118,24 @@ jobs:
 
           echo "::notice::Repo-Zugriff OK: afeldman/homebrew-tap"
 
-          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+          nebula_json=$(curl -sS \
             -H "Authorization: token ${NEBULA_NIX_TOKEN}" \
             -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/afeldman/nebula-nix")
 
-          if [[ "$code" -ne 200 ]]; then
-            echo "::error::Kein Repo-Zugriff auf afeldman/nebula-nix (HTTP ${code})."
+          if [[ "$(echo "${nebula_json}" | jq -r '.message // empty')" == "Not Found" ]]; then
+            echo "::error::Kein Repo-Zugriff auf afeldman/nebula-nix (Not Found)."
             exit 1
           fi
 
-          echo "::notice::Repo-Zugriff OK: afeldman/nebula-nix"
+          nebula_push=$(echo "${nebula_json}" | jq -r '.permissions.push // false')
+          if [[ "${nebula_push}" != "true" ]]; then
+            echo "::error::NEBULA_NIX_GITHUB_TOKEN hat keinen Schreibzugriff (permissions.push=false) auf afeldman/nebula-nix."
+            echo "::error::Bitte Fine-grained PAT mit Repository access + Contents: Read and write setzen."
+            exit 1
+          fi
+
+          echo "::notice::Repo-Zugriff + push OK: afeldman/nebula-nix"
 
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v5
@@ -138,7 +145,7 @@ jobs:
           args: ${{ env.ACT == 'true' && 'build --snapshot --clean --parallelism 1' || 'release --clean' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NEBULA_NIX_GITHUB_TOKEN: ${{ secrets.NEBULA_NIX_GITHUB_TOKEN || secrets.HOMEBREW_TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
+          NEBULA_NIX_GITHUB_TOKEN: ${{ secrets.NEBULA_NIX_GITHUB_TOKEN }}
           # Optional: Add if you want to sign releases
           # GPG_FINGERPRINT: ${{ secrets.GPG_FINGERPRINT }}
           HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN || secrets.GITHUB_TOKEN }}
