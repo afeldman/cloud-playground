@@ -110,6 +110,23 @@ homebrew_casks:
       - cpctl
     skip_upload: auto
 
+nix:
+  - name: cpctl
+    ids:
+      - cpctl
+    path: nix/pkgs/cpctl/default.nix
+    homepage: "https://github.com/afeldman/cloud-playground"
+    description: "Cloud Playground CLI for AWS and Kubernetes"
+    license: "asl20"
+    repository:
+      owner: afeldman
+      name: cloud-playground
+      branch: master
+      token: "{{ .Env.NIX_PUBLISH_TOKEN }}"
+    commit_msg_template: "nix(cpctl): update {{ .Tag }}"
+    formatter: nixfmt
+    skip_upload: auto
+
 release:
   footer: >-
 
